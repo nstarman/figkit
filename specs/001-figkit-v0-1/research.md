@@ -96,4 +96,7 @@ throwaway pages (not kept) under Playwright 1.58.0.
   committed, compressed fixture `examples/globe/source.npz` (a few MB, subsampled particles, MIT/CC-BY
   with a pointer to the paper), produced once by a script in the paper repo. figkit therefore has no
   dependency on JAX, galax or the paper's pipeline.
-- **Licence note**: the fixture carries a README naming the paper and its licence.
+- **Attribution** (approved by the author, 2026-10-21): publishing the extract in this public repo
+  is fine. `examples/globe/SOURCE.md` attributes it to the paper,
+  https://ui.adsabs.harvard.edu/abs/2026arXiv260940057S/abstract, and states its licence; the
+  gallery page shows the same citation.
