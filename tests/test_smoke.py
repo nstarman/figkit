@@ -117,15 +117,18 @@ def test_phone_layout(browser, served):
     page = ctx.new_page()
     page.goto(served)
     page.wait_for_selector('[data-panel="nbody"] .fk-readout:has-text("%")')
-    assert page.evaluate("document.documentElement.scrollWidth") <= 390  # no sideways scrolling
+    # no sideways scrolling
+    assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1")
     globe = page.locator("canvas[data-r]").bounding_box()
     panels = [page.locator(f'[data-panel="{i}"]').bounding_box() for i in PAPER]
+    assert globe is not None and all(panels), "globe and panels must be rendered and visible"
     assert globe["width"] > 300  # the globe uses the full width, not a sliver of it
     assert all(p["y"] >= globe["y"] + globe["height"] - 1 for p in panels)  # panels stacked below it
     assert panels[0]["y"] == panels[1]["y"]  # still 2 x 2 at phone width: compact, not one tall column
     for i in PAPER:  # headers wrap whole words: the readout stays on one line
-        h = page.locator(f'[data-panel="{i}"] .fk-readout').bounding_box()["height"]
-        assert h < 24, (i, h)
+        box = page.locator(f'[data-panel="{i}"] .fk-readout').bounding_box()
+        assert box is not None, i
+        assert box["height"] < 24, (i, box["height"])
     ctx.close()
 
 

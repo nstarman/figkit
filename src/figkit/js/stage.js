@@ -48,11 +48,25 @@ export function createStage(el, { draw, onResize } = {}) {
 /** A CSS custom property's value on `el` (e.g. a theme colour from figkit.css), or `fallback`. */
 export const cssVar = (el, name, fallback) => getComputedStyle(el).getPropertyValue(name).trim() || fallback;
 
-/** Any CSS colour as [r, g, b] (0–255), resolved by the browser. */
+let probe = null; // one 1×1 context, reused: rgb() runs on every globe redraw
+const rgbCache = new Map();
+
+/** Any CSS colour as [r, g, b] (0–255), resolved by the browser; cached per colour string. */
 export function rgb(color) {
-  const c = document.createElement("canvas").getContext("2d");
-  c.fillStyle = "#000"; c.fillStyle = color; c.fillRect(0, 0, 1, 1);
-  return Array.from(c.getImageData(0, 0, 1, 1).data.subarray(0, 3));
+  let out = rgbCache.get(color);
+  if (out) return out;
+  if (!probe) {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    probe = canvas.getContext("2d", { willReadFrequently: true });
+    if (!probe) throw new Error("figkit: a 2-D canvas context is needed to resolve colours");
+  }
+  probe.clearRect(0, 0, 1, 1);
+  probe.fillStyle = "#000"; probe.fillStyle = color; probe.fillRect(0, 0, 1, 1);
+  out = Array.from(probe.getImageData(0, 0, 1, 1).data.subarray(0, 3));
+  if (rgbCache.size > 64) rgbCache.clear();
+  rgbCache.set(color, out);
+  return out;
 }
 
 /**
