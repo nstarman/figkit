@@ -26,7 +26,7 @@
 @container (max-width: 320px) { .fk-grid-2 { grid-template-columns: minmax(0, 1fr); } }
 .fk-panel { border: 2px solid var(--fk-line); border-radius: 4px; padding: 6px; min-width: 0; }
 .fk-panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 8px; font-weight: 600; margin-bottom: 4px; }
-.fk-panel-head > span { white-space: nowrap; }
+.fk-readout { white-space: nowrap; } /* titles may wrap; a readout stays on one line */
 .fk-readout { font-weight: 400; color: var(--fk-muted); font-variant-numeric: tabular-nums; }
 .fk-plot { position: relative; width: 100%; aspect-ratio: 1; }
 .fk-error {

@@ -87,49 +87,53 @@ def test_drag_frame_rate(browser, served, browser_name):
     if browser_name != "chromium":
         pytest.skip("frame rate is measured on Chromium")
     ctx = browser.new_context(viewport={"width": 1280, "height": 1000}, device_scale_factor=2)
-    page = ctx.new_page()
-    page.goto(served)
-    page.wait_for_selector('[data-panel="nbody"] .fk-readout:has-text("%")')
-    # rotate for 2 s, one pointer move per animation frame, driven inside the page (scripted mouse
-    # moves are round trips that would cap the rate); frames achieved = the page's frame rate
-    fps = page.evaluate("""() => new Promise((done) => {
-      const cv = document.querySelector("canvas[data-r]"), b = cv.getBoundingClientRect();
-      const x = b.left + 0.8 * b.width, y = b.top + 0.25 * b.height;
-      const ev = (type, dx) => cv.dispatchEvent(new PointerEvent(type, { pointerId: 7, clientX: x - dx, clientY: y + dx / 2, bubbles: true }));
-      ev("pointerdown", 0);
-      let n = 0; const t0 = performance.now();
-      const step = () => {
-        const t = performance.now() - t0;
-        if (t > 2000) { ev("pointerup", n % 60); done(1000 * n / t); return; }
-        ev("pointermove", 2 * (n++ % 60)); requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
-    })""")
-    print(f"rotating at 2x DPR: {fps:.0f} frames/s")
-    ctx.close()
-    assert fps >= 30
+    try:
+        page = ctx.new_page()
+        page.goto(served)
+        page.wait_for_selector('[data-panel="nbody"] .fk-readout:has-text("%")')
+        # rotate for 2 s, one pointer move per animation frame, driven inside the page (scripted mouse
+        # moves are round trips that would cap the rate); frames achieved = the page's frame rate
+        fps = page.evaluate("""() => new Promise((done) => {
+          const cv = document.querySelector("canvas[data-r]"), b = cv.getBoundingClientRect();
+          const x = b.left + 0.8 * b.width, y = b.top + 0.25 * b.height;
+          const ev = (type, dx) => cv.dispatchEvent(new PointerEvent(type, { pointerId: 7, clientX: x - dx, clientY: y + dx / 2, bubbles: true }));
+          ev("pointerdown", 0);
+          let n = 0; const t0 = performance.now();
+          const step = () => {
+            const t = performance.now() - t0;
+            if (t > 2000) { ev("pointerup", n % 60); done(1000 * n / t); return; }
+            ev("pointermove", 2 * (n++ % 60)); requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        })""")
+        print(f"rotating at 2x DPR: {fps:.0f} frames/s")
+        assert fps >= 30
+    finally:
+        ctx.close()
 
 
 # ── layout (narrow screens, dark mode) and the gallery's back link ───────────
 
 def test_phone_layout(browser, served):
     ctx = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2)
-    page = ctx.new_page()
-    page.goto(served)
-    page.wait_for_selector('[data-panel="nbody"] .fk-readout:has-text("%")')
-    # no sideways scrolling
-    assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1")
-    globe = page.locator("canvas[data-r]").bounding_box()
-    panels = [page.locator(f'[data-panel="{i}"]').bounding_box() for i in PAPER]
-    assert globe is not None and all(panels), "globe and panels must be rendered and visible"
-    assert globe["width"] > 300  # the globe uses the full width, not a sliver of it
-    assert all(p["y"] >= globe["y"] + globe["height"] - 1 for p in panels)  # panels stacked below it
-    assert panels[0]["y"] == panels[1]["y"]  # still 2 x 2 at phone width: compact, not one tall column
-    for i in PAPER:  # headers wrap whole words: the readout stays on one line
-        box = page.locator(f'[data-panel="{i}"] .fk-readout').bounding_box()
-        assert box is not None, i
-        assert box["height"] < 24, (i, box["height"])
-    ctx.close()
+    try:
+        page = ctx.new_page()
+        page.goto(served)
+        page.wait_for_selector('[data-panel="nbody"] .fk-readout:has-text("%")')
+        # no sideways scrolling
+        assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1")
+        globe = page.locator("canvas[data-r]").bounding_box()
+        panels = [page.locator(f'[data-panel="{i}"]').bounding_box() for i in PAPER]
+        assert globe is not None and all(panels), "globe and panels must be rendered and visible"
+        assert globe["width"] > 300  # the globe uses the full width, not a sliver of it
+        assert all(p["y"] >= globe["y"] + globe["height"] - 1 for p in panels)  # panels stacked below it
+        assert abs(panels[0]["y"] - panels[1]["y"]) < 1  # still 2 x 2 at phone width, not one tall column
+        for i in PAPER:  # a readout stays on one line
+            box = page.locator(f'[data-panel="{i}"] .fk-readout').bounding_box()
+            assert box is not None, i
+            assert box["height"] < 24, (i, box["height"])
+    finally:
+        ctx.close()
 
 
 def test_gallery_back_link(page, tmp_path_factory):

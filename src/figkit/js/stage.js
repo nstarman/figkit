@@ -51,7 +51,7 @@ export const cssVar = (el, name, fallback) => getComputedStyle(el).getPropertyVa
 let probe = null; // one 1×1 context, reused: rgb() runs on every globe redraw
 const rgbCache = new Map();
 
-/** Any CSS colour as [r, g, b] (0–255), resolved by the browser; cached per colour string. */
+/** Any CSS colour as a frozen [r, g, b] (0–255), resolved by the browser; cached per colour string. */
 export function rgb(color) {
   let out = rgbCache.get(color);
   if (out) return out;
@@ -63,7 +63,7 @@ export function rgb(color) {
   }
   probe.clearRect(0, 0, 1, 1);
   probe.fillStyle = "#000"; probe.fillStyle = color; probe.fillRect(0, 0, 1, 1);
-  out = Array.from(probe.getImageData(0, 0, 1, 1).data.subarray(0, 3));
+  out = Object.freeze(Array.from(probe.getImageData(0, 0, 1, 1).data.subarray(0, 3))); // shared: read-only
   if (rgbCache.size > 64) rgbCache.clear();
   rgbCache.set(color, out);
   return out;
