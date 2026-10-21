@@ -114,10 +114,10 @@ jobs:
         with:
           header: preview
           message: |
-            **Preview:** ${{ steps.deploy.outputs.deployment-url }}
+            **Preview:** ${{ steps.deploy.outputs.deployment-alias-url || format('https://pr-{0}.figkit.pages.dev', github.event.number) }}
 
-            The gallery built from `${{ github.event.pull_request.head.sha }}` with this branch's figkit.
-            Updated on every push to this pull request.
+            The gallery with this branch's figkit; the link always shows the latest push.
+            This build (`${{ github.event.pull_request.head.sha }}`): ${{ steps.deploy.outputs.deployment-url }}
 
   # The one check to require in branch protection: green only when every job above is (preview is
   # skipped outside pull requests). A job added later is covered without touching the settings.
