@@ -36,3 +36,18 @@ data.json.style;                             // json entries
 The same call works on the served site (fetches `data/<name>/…`), in the single file (inlined
 copies) and in a notebook (synced bytes). Arrays are flat typed arrays in C order: element
 `[i, j]` of an `[n, m]` array is `data[i * m + j]`.
+
+## Loading a dataset inside `figkit test`
+
+`loadData` takes a `fetch`; in Node, read the exported files from disk:
+
+```js
+import { readFile } from "node:fs/promises";
+import { loadData } from "figkit/data.js";
+
+const fileFetch = async (url) => {
+  const buf = await readFile(new URL(url, `file://${process.cwd()}/`));
+  return { ok: true, json: async () => JSON.parse(buf), arrayBuffer: async () => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) };
+};
+const data = await loadData("points", { fetch: fileFetch, base: "build/data/" }); // run after export.py
+```

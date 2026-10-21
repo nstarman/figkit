@@ -159,9 +159,9 @@ testable increment.
 
 **Independent Test**: the rehearsal in T049.
 
-- [ ] T047 [US4] Write `skills/figkit-upgrade/SKILL.md` (frontmatter `name: figkit-upgrade`, a `description` that triggers on upgrading/bumping figkit in a webapp or paper repo): find the built-against version (`<meta name="figkit-version">` or a manifest's `figkit`), read `CHANGELOG.md` from that version to the target, apply each migration note in order (**Find** then **Edit**), bump the pin in `pyproject.toml`, rebuild, rerun the app's tests and acceptance numbers, report what changed; stop and report if a breaking change has no migration note
-- [ ] T048 [P] [US4] Add `skills/figkit-upgrade/card.json` (`name`, `description`: one or two plain sentences) in the format used by `nstarman/skills` (see that repo's AGENTS.md)
-- [ ] T049 [US4] Rehearse the upgrade: on a throwaway branch tag `v0.1.0-rc.1`; make a deliberate breaking rename (e.g. `skypanel` option `compute` → `project`) with a migration note, tag `v0.1.0-rc.2`; copy `examples/globe` to a scratch paper-like repo pinned to rc.1; have a fresh subagent apply the skill to upgrade it to rc.2; confirm it builds and passes T018/T022 at rc.2; write the outcome to `specs/001-figkit-v0-1/upgrade-rehearsal.md`; delete the throwaway tags and branch
+- [X] T047 [US4] Write `skills/figkit-upgrade/SKILL.md` (frontmatter `name: figkit-upgrade`, a `description` that triggers on upgrading/bumping figkit in a webapp or paper repo): find the built-against version (`<meta name="figkit-version">` or a manifest's `figkit`), read `CHANGELOG.md` from that version to the target, apply each migration note in order (**Find** then **Edit**), bump the pin in `pyproject.toml`, rebuild, rerun the app's tests and acceptance numbers, report what changed; stop and report if a breaking change has no migration note
+- [X] T048 [P] [US4] Add `skills/figkit-upgrade/card.json` (`name`, `description`: one or two plain sentences) in the format used by `nstarman/skills` (see that repo's AGENTS.md)
+- [X] T049 [US4] Rehearse the upgrade: on a throwaway branch tag `v0.1.0-rc.1`; make a deliberate breaking rename (e.g. `skypanel` option `compute` → `project`) with a migration note, tag `v0.1.0-rc.2`; copy `examples/globe` to a scratch paper-like repo pinned to rc.1; have a fresh subagent apply the skill to upgrade it to rc.2; confirm it builds and passes T018/T022 at rc.2; write the outcome to `specs/001-figkit-v0-1/upgrade-rehearsal.md`; delete the throwaway tags and branch
 
 ---
 
@@ -171,20 +171,20 @@ testable increment.
 
 **Independent Test**: the rehearsal in T053.
 
-- [ ] T050 [US5] Write `skills/figkit/SKILL.md` (frontmatter `name: figkit`, a `description` that triggers on requests for interactive figures/webapps for a paper or work in a `webapps/` folder): steps scaffold → export (dtype rules, no silent narrowing) → science.js with a `node --test` check against numbers from the paper's Python → widget.js (state rules: replace don't mutate, derived data in callbacks, `views` dict) → build both outputs → view → notebook
-- [ ] T051 [P] [US5] Write `skills/figkit/references/components.md` (globe and skypanel options, model keys, `run`), `data-contract.md`, `conventions.md` (import rule, no top-level DOM, frames, `camera` row order, angle conventions, antipode rule) and `worked-example.md` (walkthrough of `examples/globe`), consistent with contracts/js-api.md
-- [ ] T052 [P] [US5] Create `skills/figkit/assets/template/` (`index.html`, `widget.js`, `science.js`, `science.test.js`, `export.py`) — a minimal app with one skypanel and a reset button that builds and passes its test; add `skills/figkit/card.json`
-- [ ] T053 [US5] Rehearse the skill: a fresh subagent with only the skill builds a small new webapp in a scratch folder (exported 2-D points; a slider that rotates them; a readout) and both outputs; check it passes `figkit build`'s checks and has a passing science test; write the outcome and any skill fixes to `specs/001-figkit-v0-1/skill-rehearsal.md`
+- [X] T050 [US5] Write `skills/figkit/SKILL.md` (frontmatter `name: figkit`, a `description` that triggers on requests for interactive figures/webapps for a paper or work in a `webapps/` folder): steps scaffold → export (dtype rules, no silent narrowing) → science.js with a `node --test` check against numbers from the paper's Python → widget.js (state rules: replace don't mutate, derived data in callbacks, `views` dict) → build both outputs → view → notebook
+- [X] T051 [P] [US5] Write `skills/figkit/references/components.md` (globe and skypanel options, model keys, `run`), `data-contract.md`, `conventions.md` (import rule, no top-level DOM, frames, `camera` row order, angle conventions, antipode rule) and `worked-example.md` (walkthrough of `examples/globe`), consistent with contracts/js-api.md
+- [X] T052 [P] [US5] Create `skills/figkit/assets/template/` (`index.html`, `widget.js`, `science.js`, `science.test.js`, `export.py`) — a minimal app with one skypanel and a reset button that builds and passes its test; add `skills/figkit/card.json`
+- [X] T053 [US5] Rehearse the skill: a fresh subagent with only the skill builds a small new webapp in a scratch folder (exported 2-D points; a slider that rotates them; a readout) and both outputs; check it passes `figkit build`'s checks and has a passing science test; write the outcome and any skill fixes to `specs/001-figkit-v0-1/skill-rehearsal.md`
 
 ---
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T054 [P] Add `.github/workflows/gallery.yml`: on `release: published` and manual dispatch, install the package, run `examples/globe/export.py`, build served + single file into `site/`, add a small `site/index.html` gallery page (citation, link to the single file), deploy with `actions/upload-pages-artifact` + `actions/deploy-pages`; enable Pages (source: GitHub Actions) on the repo
-- [ ] T055 [P] Add a CI step in `.github/workflows/tests.yml` that, on tags, fails if the tag differs from `v` + `figkit.__version__`
-- [ ] T056 Extend `tests/test_smoke.py` with SC-002 (time to first panel readout < 2 s, served and single file) and SC-003 (programmatic 2 s marker drag on Chromium at `deviceScaleFactor: 2`, count rAF redraws, assert ≥ 30 fps, print the value)
-- [ ] T057 [P] Measure SC-007: line counts of `examples/globe/{widget.js,index.html}` versus the prototype `globe_explorer.html`; record in `specs/001-figkit-v0-1/quickstart.md` notes
-- [ ] T058 [P] Finalise `README.md` (install from tag, 10-line usage, gallery link) and `AGENTS.md` (drop the *(v0.1)* markers; layout, conventions, testing and releasing as built)
+- [X] T054 [P] Add `.github/workflows/gallery.yml`: on `release: published` and manual dispatch, install the package, run `examples/globe/export.py`, build served + single file into `site/`, add a small `site/index.html` gallery page (citation, link to the single file), deploy with `actions/upload-pages-artifact` + `actions/deploy-pages`; enable Pages (source: GitHub Actions) on the repo
+- [X] T055 [P] Add a CI step in `.github/workflows/tests.yml` that, on tags, fails if the tag differs from `v` + `figkit.__version__`
+- [X] T056 Extend `tests/test_smoke.py` with SC-002 (time to first panel readout < 2 s, served and single file) and SC-003 (programmatic 2 s marker drag on Chromium at `deviceScaleFactor: 2`, count rAF redraws, assert ≥ 30 fps, print the value)
+- [X] T057 [P] Measure SC-007: line counts of `examples/globe/{widget.js,index.html}` versus the prototype `globe_explorer.html`; record in `specs/001-figkit-v0-1/quickstart.md` notes
+- [X] T058 [P] Finalise `README.md` (install from tag, 10-line usage, gallery link) and `AGENTS.md` (drop the *(v0.1)* markers; layout, conventions, testing and releasing as built)
 - [ ] T059 Run the whole of quickstart.md; confirm the CI smoke matrix is green on chromium, firefox and webkit (Firefox is the R1 gate)
 - [ ] T060 Set `__version__ = "0.1.0"`, write the `## 0.1.0 — <date>` section in `CHANGELOG.md`, merge `001-figkit-v0-1` to `main`, tag `v0.1.0`, publish the release, and confirm the gallery deploys
 

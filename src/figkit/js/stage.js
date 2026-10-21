@@ -52,7 +52,7 @@ export function dragHelper(el, { hitTest, onStart, onMove, onEnd }) {
   const down = (e) => {
     const [x, y] = at(e);
     drag = { target: hitTest?.(x, y) ?? null, x, y, id: e.pointerId };
-    el.setPointerCapture?.(e.pointerId);
+    try { el.setPointerCapture?.(e.pointerId); } catch { /* synthetic or already-released pointer */ }
     onStart?.(drag.target, x, y);
   };
   const move = (e) => {

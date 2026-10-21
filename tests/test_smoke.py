@@ -63,3 +63,48 @@ def test_single_file(page, globe_site):
     page.route("**/*", lambda route: route.continue_() if route.request.url.startswith(("file:", "data:", "blob:"))
                else route.abort())
     check_page(page, globe_site.single_file.as_uri())
+
+
+# ── performance (SC-002, SC-003) ─────────────────────────────────────────────
+
+def _time_to_readouts(page, url):
+    import time
+
+    t0 = time.perf_counter()
+    page.goto(url)
+    page.wait_for_selector('[data-panel="nbody"] .fk-readout:has-text("%")')
+    return time.perf_counter() - t0
+
+
+def test_load_time(page, served, globe_site):
+    served_s = _time_to_readouts(page, served)
+    single_s = _time_to_readouts(page, globe_site.single_file.as_uri())
+    print(f"time to readouts: served {served_s:.2f} s, single file {single_s:.2f} s")
+    assert served_s < 2 and single_s < 2
+
+
+def test_drag_frame_rate(browser, served, browser_name):
+    if browser_name != "chromium":
+        pytest.skip("frame rate is measured on Chromium")
+    ctx = browser.new_context(viewport={"width": 1280, "height": 1000}, device_scale_factor=2)
+    page = ctx.new_page()
+    page.goto(served)
+    page.wait_for_selector('[data-panel="nbody"] .fk-readout:has-text("%")')
+    # rotate for 2 s, one pointer move per animation frame, driven inside the page (scripted mouse
+    # moves are round trips that would cap the rate); frames achieved = the page's frame rate
+    fps = page.evaluate("""() => new Promise((done) => {
+      const cv = document.querySelector("canvas[data-r]"), b = cv.getBoundingClientRect();
+      const x = b.left + 0.8 * b.width, y = b.top + 0.25 * b.height;
+      const ev = (type, dx) => cv.dispatchEvent(new PointerEvent(type, { pointerId: 7, clientX: x - dx, clientY: y + dx / 2, bubbles: true }));
+      ev("pointerdown", 0);
+      let n = 0; const t0 = performance.now();
+      const step = () => {
+        const t = performance.now() - t0;
+        if (t > 2000) { ev("pointerup", n % 60); done(1000 * n / t); return; }
+        ev("pointermove", 2 * (n++ % 60)); requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    })""")
+    print(f"rotating at 2x DPR: {fps:.0f} frames/s")
+    ctx.close()
+    assert fps >= 30

@@ -20,9 +20,11 @@ test("outside the disc is untouched; the centre samples the toward direction", (
   assert.equal(out[c + 3], 255);
 });
 
-test("reduced resolution still fills the whole disc", () => {
+test("every pixel inside the disc is shaded, none outside", () => {
   const size = 40, out = new Uint8ClampedArray(size * size * 4);
-  shade(camera, tex, size, out, 4);
-  const c = (20 * size + 21) * 4;
-  assert.equal(out[c + 3], 255);
+  shade(camera, tex, size, out);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const u = (x + 0.5 - 20) / 20, v = (y + 0.5 - 20) / 20;
+    assert.equal(out[4 * (y * size + x) + 3], u * u + v * v <= 1 ? 255 : 0, `${x},${y}`);
+  }
 });

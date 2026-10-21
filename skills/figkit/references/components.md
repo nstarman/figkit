@@ -16,17 +16,21 @@ and removes its listeners on dispose. Mount several components on one model to l
 
 Model: reads/writes `camera` (rotate by dragging the background) and `views`
 (`{id: [x, y, z]}`, drag a square). Calls `save_changes()` on pointer-up.
-Pure kernel: `shade(camera, texture, size, out, step = 1)`.
+Pure kernel: `shade(camera, texture, size, out)`.
 
-## figkit/skypanel.js — `mount(el, model, opts)`
+## figkit/skypanel.js — `mount(el, model, opts)` (the general 2-D panel)
+
+Named for sky projections, but use it for any 2-D plot driven by model state.
 
 | Option | Meaning |
 |---|---|
-| `id` | key into `views`; the panel recomputes only when `views[id]` changes |
+| `id` | key into `views`; `views[id]` may be any value (a unit vector, an angle, `[θ, φ]`, …). The panel recomputes only when that entry changes (by identity) |
 | `title`, `color` | header text and colour |
-| `compute` | `(view) → {xy, points?, mask?, readout?}`: flat n×2 line, flat m×2 points, Uint8Array n mask of highlighted points, text |
+| `compute` | `(view) → {xy, points?, mask?, readout?}`: `xy` flat n×2 line; `points` flat m×2, drawn as faint 1-px dots in `color`; `mask` Uint8Array n, segments where two neighbours are set are drawn thick in `highlight`; `readout` text in the header |
 | `highlight` | colour of masked segments (default `#FF7F7F`) |
+| `limits` | fixed frame `{cx, cy, half}` (data units); default: re-frame to the line on every update — fix it when the motion itself is the point (e.g. a rotation) |
 
+The black × marks the origin (0, 0) of the data coordinates (in sky panels, the projected centre).
 Pure helper: `autoscale(xy, pad = 0.55) → {cx, cy, half}` (equal aspect, frames the line).
 
 ## figkit/model.js — `createModel(initial)`

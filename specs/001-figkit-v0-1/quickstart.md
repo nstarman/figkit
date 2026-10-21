@@ -89,3 +89,9 @@ Expected: pass for served and `file://` outputs; the drag test reports ≥ 30 fp
   the same fractions. Gotcha: JupyterLab must see anywidget's lab extension; with
   `uv run --with jupyterlab`, also pass `--with anywidget --with ipywidgets`, otherwise the
   browser console shows "Exception opening new comm".
+- SC-002: time to all four readouts — served 0.17–0.37 s, single file 0.21–0.54 s (Chromium, WebKit).
+- SC-003: rotating at 2× DPR in headless Chromium (CPU rendering), driven one pointer move per
+  frame: 42 frames/s. (A first measurement of 11–18/s was bounded by Playwright's per-move round
+  trips, not the page; shading during rotation was also reworked to render at 1/3 resolution.)
+- SC-007: app code excluding the science step is 92 lines (`widget.js` 63 + `index.html` 29) versus
+  274 lines for the prototype page: 34 %.

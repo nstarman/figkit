@@ -71,7 +71,8 @@ mount(el, model, {
   markerSizeDeg = 5.5,
 }) → dispose
 // reads: camera, views; writes: camera (on rotate), views (on marker drag); save_changes on pointerup
-export function shade(camera, texture, size, out, step = 1) // pure kernel, tested in node
+export function shade(camera, texture, size, out) // pure kernel, tested in node; the globe shades
+                                                  // at 1/3 resolution while rotating
 // debugging/test hook: the globe canvas carries data-cx, data-cy, data-r (CSS px) and .figkitModel
 ```
 

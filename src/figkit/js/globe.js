@@ -8,35 +8,48 @@
 import { createStage, dragHelper } from "figkit/stage.js";
 import { mat3, trackball, project, unproject, facing, unit, dot } from "figkit/geom.js";
 
-const DRAG_STEP = 3; // shading resolution divisor while rotating
+const DRAG_STEP = 3; // shading-resolution divisor while rotating
+
+const GRIDS = new Map(); // size → per-pixel unit vectors (u, v, w); w = −1 outside the disc
+
+function unitGrid(size) {
+  let g = GRIDS.get(size);
+  if (g) return g;
+  if (GRIDS.size > 4) GRIDS.clear();
+  g = new Float32Array(3 * size * size);
+  const half = size / 2;
+  for (let y = 0, k = 0; y < size; y++) for (let x = 0; x < size; x++, k += 3) {
+    const u = (x + 0.5 - half) / half, v = -(y + 0.5 - half) / half, rr = u * u + v * v;
+    g[k] = u; g[k + 1] = v; g[k + 2] = rr > 1 ? -1 : Math.sqrt(1 - rr);
+  }
+  GRIDS.set(size, g);
+  return g;
+}
 
 /**
- * Shade the front hemisphere into `out` (RGBA, size×size): texture sampled at each pixel's
+ * Shade the front hemisphere into `out` (RGBA, size×size): the texture sampled at each pixel's
  * direction, composited over white, with gentle limb darkening. Pixels outside the disc are left
- * untouched. `step` > 1 samples every step-th pixel and fills blocks (fast, for dragging).
- * texture: {data: Uint8Array, shape: [H, W, 4]}, rows colatitude 0..π, columns azimuth 0..2π.
+ * untouched. texture: {data: Uint8Array, shape: [H, W, 4]}, rows colatitude 0..π, columns
+ * azimuth 0..2π inclusive. Callers shade a smaller size while dragging and let the canvas scale it.
  */
-export function shade(camera, texture, size, out, step = 1) {
-  const [H, W] = texture.shape, tex = texture.data, half = size / 2;
-  const r0 = mat3.row(camera, 0), r1 = mat3.row(camera, 1), r2 = mat3.row(camera, 2);
-  for (let by = 0; by < size; by += step) for (let bx = 0; bx < size; bx += step) {
-    const sx = Math.min(bx + (step >> 1), size - 1), sy = Math.min(by + (step >> 1), size - 1);
-    const u = (sx + 0.5 - half) / half, v = -(sy + 0.5 - half) / half, rr = u * u + v * v;
-    if (rr > 1 && step === 1) continue;
-    const w = Math.sqrt(Math.max(0, 1 - rr));
-    const px = r0[0] * u + r1[0] * v + r2[0] * w, py = r0[1] * u + r1[1] * v + r2[1] * w;
-    const pz = r0[2] * u + r1[2] * v + r2[2] * w;
-    const i = Math.round(Math.acos(Math.max(-1, Math.min(1, pz))) / Math.PI * (H - 1));
-    const az = (Math.atan2(py, px) + 2 * Math.PI) % (2 * Math.PI);
-    const t = 4 * (i * W + Math.round(az / (2 * Math.PI) * (W - 1)));
-    const a = tex[t + 3] / 255, limb = 0.86 + 0.14 * w;
-    const rgb = [0, 1, 2].map((c) => limb * ((1 - a) * 255 + a * tex[t + c]));
-    for (let y = by; y < Math.min(by + step, size); y++) for (let x = bx; x < Math.min(bx + step, size); x++) {
-      const uu = (x + 0.5 - half) / half, vv = -(y + 0.5 - half) / half;
-      if (uu * uu + vv * vv > 1) continue;
-      const o = 4 * (y * size + x);
-      out[o] = rgb[0]; out[o + 1] = rgb[1]; out[o + 2] = rgb[2]; out[o + 3] = 255;
-    }
+export function shade(camera, texture, size, out) {
+  const [H, W] = texture.shape, tex = texture.data, g = unitGrid(size);
+  const [a0, a1, a2, a3, a4, a5, a6, a7, a8] = camera;
+  const ki = (H - 1) / Math.PI, kj = (W - 1) / (2 * Math.PI);
+  for (let k = 0, o = 0; k < g.length; k += 3, o += 4) {
+    const w = g[k + 2];
+    if (w < 0) continue;
+    const u = g[k], v = g[k + 1];
+    const px = a0 * u + a3 * v + a6 * w, py = a1 * u + a4 * v + a7 * w;
+    const pz = a2 * u + a5 * v + a8 * w;
+    let az = Math.atan2(py, px);
+    if (az < 0) az += 2 * Math.PI;
+    const t = 4 * (Math.round(Math.acos(pz > 1 ? 1 : pz < -1 ? -1 : pz) * ki) * W + Math.round(az * kj));
+    const al = tex[t + 3] / 255, limb = 0.86 + 0.14 * w, base = (1 - al) * 255;
+    out[o] = limb * (base + al * tex[t]);
+    out[o + 1] = limb * (base + al * tex[t + 1]);
+    out[o + 2] = limb * (base + al * tex[t + 2]);
+    out[o + 3] = 255;
   }
   return out;
 }
@@ -79,14 +92,14 @@ export function mount(el, model, { texture, lines = {}, points = {}, colors = {}
   });
 
   function drawShade(camera) {
-    const step = rotating ? DRAG_STEP : 1;
-    const n = Math.max(2, Math.round(2 * geo.r * stage.dpr));
-    const key = `${camera.join()}|${n}|${step}`;
+    // while rotating, shade at 1/DRAG_STEP resolution and let drawImage scale it up
+    const n = Math.max(2, Math.round(2 * geo.r * stage.dpr / (rotating ? DRAG_STEP : 1)));
+    const key = `${camera.join()}|${n}`;
     if (key === shadeKey) return;
     shadeKey = key;
     shadeCanvas.width = shadeCanvas.height = n;
     const g = shadeCanvas.getContext("2d"), img = g.createImageData(n, n);
-    shade(camera, texture, n, img.data, step);
+    shade(camera, texture, n, img.data);
     g.putImageData(img, 0, 0);
   }
 

@@ -1,6 +1,6 @@
-// A 2-D sky panel for one viewing direction: points, the projected line, highlighted segments
-// and a readout. The numbers come from the app's `compute(view)`; this module only draws.
-// Reads `views[id]` from the model and recomputes only when that entry changes.
+// A 2-D panel: points (faint dots), a line, highlighted segments, an origin cross and a readout.
+// Built for sky projections but general: `views[id]` may be any value (a direction, an angle, …);
+// the app's `compute(view)` turns it into what to draw. Recomputes only when that entry changes.
 
 import { createStage } from "figkit/stage.js";
 
@@ -16,9 +16,10 @@ export function autoscale(xy, pad = 0.55) {
 
 /**
  * opts: id (key into views), title, color, highlight (colour of masked segments),
- * compute(view) → {xy, points?, mask?, readout?} with xy/points flat n×2 arrays.
+ * compute(view) → {xy, points?, mask?, readout?} with xy/points flat n×2 arrays,
+ * limits: fixed {cx, cy, half} frame (default: autoscale to the line on every update).
  */
-export function mount(el, model, { id, title, color = "#555", highlight = "#FF7F7F", compute }) {
+export function mount(el, model, { id, title, color = "#555", highlight = "#FF7F7F", compute, limits }) {
   el.classList.add("fk-panel");
   el.dataset.panel = id;
   el.style.borderColor = color;
@@ -39,7 +40,7 @@ export function mount(el, model, { id, title, color = "#555", highlight = "#FF7F
   function draw({ ctx, width, height }) {
     ctx.clearRect(0, 0, width, height);
     if (!result) return;
-    const { cx, cy, half } = autoscale(result.xy);
+    const { cx, cy, half } = limits ?? autoscale(result.xy);
     const s = Math.min(width, height) / 2 / half;
     const X = (x) => width / 2 + (x - cx) * s, Y = (y) => height / 2 - (y - cy) * s;
     const { xy, points, mask } = result;
@@ -69,7 +70,7 @@ export function mount(el, model, { id, title, color = "#555", highlight = "#FF7F
 
   function update() {
     const v = model.get("views")?.[id];
-    if (!v || v === view) return;
+    if (v === undefined || v === view) return; // a view of 0 is a view
     view = v;
     result = compute(v);
     readout.textContent = result.readout ?? "";

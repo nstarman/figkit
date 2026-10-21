@@ -23,7 +23,10 @@ uv add --dev "figkit[notebook] @ git+https://github.com/nstarman/figkit@vX.Y.Z" 
 
 Copy [assets/template/](assets/template/) to `webapps/<name>/`: `index.html`, `widget.js` (the
 app), `science.js` (pure science), `science.test.js`, `export.py`. Rename the dataset in
-`export.py` and `widget.js` together.
+`export.py` and `widget.js` together, and adapt the `meta` keys `widget.js` reads (the template's
+`meta.view`). The template projects 3-D points for a viewing direction; for a 2-D app keep its
+structure and put your state (e.g. an angle) in `views[id]` — see
+[references/components.md](references/components.md) (`skypanel` is the general 2-D panel).
 
 ## 2. Export the data — `export.py`
 
@@ -73,7 +76,8 @@ uv run figkit test webapps/<name>
 
 The build fails on relative imports, `import.meta.url`, unresolvable or remote imports and
 datasets of another data-format version — fix the code, never work around the check. Check both
-outputs in a browser: the served page and the single file from disk.
+outputs in a browser: the served page and the single file from disk. To read the panels'
+readouts headlessly, use [references/check-page.md](references/check-page.md).
 
 ## 6. Notebook (optional)
 

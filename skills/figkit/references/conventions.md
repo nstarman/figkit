@@ -19,6 +19,10 @@
 
 ## State
 
+- `views` is the conventional key for "what each panel shows": `{id: value}`, one entry per panel.
+  For sky projections the value is a unit viewing direction; for other apps it can be any value
+  (an angle, a pair of parameters). Prefer it so `skypanel` and the globe work unchanged.
+
 - Model values are replaced, never mutated: `model.set("views", { ...views, [id]: v })`.
 - Change callbacks receive no arguments; read with `model.get(key)`.
 - Notebooks: `model.save_changes()` once per interaction.
