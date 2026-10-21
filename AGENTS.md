@@ -51,8 +51,33 @@ uv run pytest -m smoke --browser chromium --browser webkit     # Firefox runs in
 
 ## Releasing
 
-1. Set `__version__` in `src/figkit/__init__.py`.
-2. Add the `## X.Y.Z — YYYY-MM-DD` section to `CHANGELOG.md`; every breaking change needs a
-   migration note (**What changed**, **Find**, **Edit**). Public-API changes update both skills.
-3. Merge to `main`, tag `vX.Y.Z` (CI checks it equals `__version__`), publish a GitHub release;
-   `gallery.yml` deploys the examples to Pages.
+Releases follow the `versions/vX.Y.x` model (as in phasecurvefit and unxt), so a paper pinned to
+`vX.Y.Z` can get bug fixes without the next minor version's breaking changes.
+
+**A minor (or major) release, `vX.Y.0`, from `main`:**
+
+1. In a pull request: set `__version__` in `src/figkit/__init__.py`, and add the
+   `## X.Y.0 — YYYY-MM-DD` section to `CHANGELOG.md`. Every breaking change needs a migration note
+   (**What changed**, **Find**, **Edit**); public-API changes update both skills.
+2. Squash-merge it (the only method `main` allows), then tag the merge commit and branch from it:
+   ```bash
+   git tag -a vX.Y.0 <sha> -m "figkit X.Y.0" && git push origin vX.Y.0
+   git branch versions/vX.Y.x vX.Y.0 && git push origin versions/vX.Y.x
+   ```
+3. `gh release create vX.Y.0 --verify-tag` with the changelog section as notes; `gallery.yml`
+   deploys the examples to Pages. CI checks that the tag equals `v` + `__version__`.
+
+**A bug-fix release, `vX.Y.Z` (Z > 0), from `versions/vX.Y.x`:**
+
+1. Fix on `main` first (pull request), unless the bug no longer exists there.
+2. Backport: a pull request into `versions/vX.Y.x` cherry-picking the fix, bumping `__version__` to
+   `X.Y.Z` and adding a `## X.Y.Z` changelog section (on `main` too, so its changelog stays complete).
+   Bug-fix releases never contain breaking changes.
+3. Tag the merged commit on `versions/vX.Y.x` as `vX.Y.Z`, push, and create the release.
+
+## Pull-request previews
+
+Every pull request gets a live preview of the gallery on Cloudflare Pages (project `figkit`,
+branch `pr-<number>`), posted as a sticky comment by the `preview` job in `tests.yml`. It needs the
+repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` and skips without them. The
+one check to require in branch protection is **CI Pass**.
