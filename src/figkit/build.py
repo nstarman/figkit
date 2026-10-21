@@ -209,7 +209,8 @@ def build(
             path = JS_DIR / href[len("figkit/"):] if href.startswith("figkit/") else app / href
             if not path.is_file():
                 raise BuildError(f"index.html: stylesheet {href!r} not found")
-            return f"<style>\n{path.read_text(encoding="utf-8")}</style>"
+            css = path.read_text(encoding="utf-8")
+            return f"<style>\n{css}</style>"
 
         page = _STYLESHEET.sub(inline_css, page)
         registry = {
