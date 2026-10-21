@@ -1,9 +1,18 @@
-"""Write the gallery's index.html into a built site folder:  python examples/gallery.py site"""
+"""Build the gallery: every example (served + single file) and an index page.
 
+    uv run python examples/gallery.py site
+
+Used by gallery.yml (GitHub Pages, on release) and by the pull-request previews in tests.yml.
+"""
+
+import importlib.util
+import shutil
 import sys
 from pathlib import Path
 
 import figkit
+
+HERE = Path(__file__).parent
 
 EXAMPLES = [
     ("globe", "Stream convexities in a common principal-axis frame",
@@ -32,7 +41,19 @@ ITEM = """<div class="ex"><h2><a href="{slug}/">{title}</a></h2><p>{text}</p>
 <p class="meta">Data: <a href="{url}">{cite}</a> · <a href="{slug}.html">single file</a> (opens offline)</p></div>"""
 
 
+def build_example(slug: str, site: Path, data_dir: Path) -> None:
+    spec = importlib.util.spec_from_file_location(f"{slug}_export", HERE / slug / "export.py")
+    export = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(export)
+    dataset = export.main(data_dir)
+    figkit.build(HERE / slug, data=[dataset], out=site / slug, single_file=site / f"{slug}.html")
+
+
 def main(site: Path) -> None:
+    shutil.rmtree(site, ignore_errors=True)
+    site.mkdir(parents=True)
+    for slug, *_ in EXAMPLES:
+        build_example(slug, site, site.parent / f"{site.name}-data")
     items = "\n".join(ITEM.format(slug=s, title=t, text=x, cite=c, url=u) for s, t, x, c, u in EXAMPLES)
     (site / "index.html").write_text(PAGE.format(version=figkit.__version__, items=items))
 

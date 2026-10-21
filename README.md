@@ -11,7 +11,7 @@ movies that readers can explore next to the static PDF, built to keep working fo
   disk, offline, for archives.
 - **Same app in notebooks** (Jupyter, marimo) through anywidget, with state synced back to Python.
 
-Gallery: <https://nstarman.github.io/figkit/> (published from releases).
+Gallery: <https://nstarkman.space/figkit/> (published from releases).
 
 ## Install
 

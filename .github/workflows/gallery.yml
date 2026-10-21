@@ -22,11 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync
-      - name: Build the globe example (served + single file)
-        run: |
-          uv run python examples/globe/export.py --out build/data
-          uv run figkit build examples/globe --data build/data/globe --out site/globe --single-file site/globe.html
-      - name: Gallery page
+      - name: Build the gallery (every example, served + single file, and the index)
         run: uv run python examples/gallery.py site
       - uses: actions/upload-pages-artifact@v3
         with:
