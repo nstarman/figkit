@@ -91,7 +91,7 @@ def _check_tree(sources: Iterable[tuple[str, str, int]], roots: Mapping[str, Pat
             path = _resolve(imp.spec, roots, file, imp.line)
             if path not in seen:
                 seen.add(path)
-                stack.append((path.read_text(), path.name, 0))
+                stack.append((path.read_text(encoding="utf-8"), path.name, 0))
 
 
 def _data_url(text: str | bytes, mime: str) -> str:
@@ -113,7 +113,7 @@ def _inline_path(path: Path, roots: Mapping[str, Path], memo: dict, stack: tuple
         chain = " → ".join(p.name for p in (*stack, path))
         raise BuildError(f"{path.name}: import cycle {chain}")
     if path not in memo:
-        memo[path] = _data_url(_rewrite(path.read_text(), path.name, roots, memo, (*stack, path)),
+        memo[path] = _data_url(_rewrite(path.read_text(encoding="utf-8"), path.name, roots, memo, (*stack, path)),
                                "text/javascript")
     return memo[path]
 
@@ -126,7 +126,7 @@ def inline_modules(entry: str, *, roots: Mapping[str, Path]) -> str:
     so each module is instantiated once.
     """
     path = _resolve(entry, roots, entry, 0)
-    return _rewrite(path.read_text(), path.name, roots, {}, (path,))
+    return _rewrite(path.read_text(encoding="utf-8"), path.name, roots, {}, (path,))
 
 
 def _insert_head(html: str, snippet: str) -> str:
@@ -170,10 +170,10 @@ def build(
     if not index.is_file():
         raise BuildError(f"{index} not found")
     roots = {"figkit/": JS_DIR, "app/": app}
-    html = index.read_text()
+    html = index.read_text(encoding="utf-8")
     scripts = [(m.group(2), "index.html", html.count("\n", 0, m.start(2))) for m in _MODULE_SCRIPT.finditer(html)]
-    app_js = [(p.read_text(), p.name, 0) for p in sorted(app.glob("*.js")) if not p.name.endswith(".test.js")]
-    lib_js = [(p.read_text(), f"figkit/{p.name}", 0) for p in sorted(JS_DIR.glob("*.js"))]
+    app_js = [(p.read_text(encoding="utf-8"), p.name, 0) for p in sorted(app.glob("*.js")) if not p.name.endswith(".test.js")]
+    lib_js = [(p.read_text(encoding="utf-8"), f"figkit/{p.name}", 0) for p in sorted(JS_DIR.glob("*.js"))]
     _check_tree([*scripts, *app_js, *lib_js], roots)
     datasets = _check_data(data)
     result = BuildResult()
@@ -191,7 +191,7 @@ def build(
         imap = json.dumps({"imports": {"figkit/": f"./{vendor}/", "app/": "./"}})
         page = _ASSET_ATTR.sub(lambda m: f"{m.group(1)}={m.group(2)}./{vendor}/", html)
         page = _insert_head(page, f'{_version_meta()}\n<script type="importmap">{imap}</script>')
-        (site / "index.html").write_text(page)
+        (site / "index.html").write_text(page, encoding="utf-8")
         for d in datasets:
             shutil.copytree(d, site / "data" / d.name)
         result.out = site
@@ -209,7 +209,7 @@ def build(
             path = JS_DIR / href[len("figkit/"):] if href.startswith("figkit/") else app / href
             if not path.is_file():
                 raise BuildError(f"index.html: stylesheet {href!r} not found")
-            return f"<style>\n{path.read_text()}</style>"
+            return f"<style>\n{path.read_text(encoding="utf-8")}</style>"
 
         page = _STYLESHEET.sub(inline_css, page)
         registry = {
@@ -220,7 +220,7 @@ def build(
         page = _insert_head(page, f"{_version_meta()}\n<script>globalThis.FIGKIT_DATA = {json.dumps(registry)};</script>")
         target = Path(single_file)
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(page)
+        target.write_text(page, encoding="utf-8")
         size_mb = target.stat().st_size / 1e6
         if size_mb > size_warning_mb:
             result.warnings.append(f"{target} is {size_mb:.1f} MB (above {size_warning_mb:g} MB); "

@@ -21,7 +21,7 @@ MAX_POINTS = 3000
 
 
 def main(page: str) -> None:
-    text = Path(page).read_text()
+    text = Path(page).read_text(encoding="utf-8")
     data = json.loads(re.search(r"const DATA = (\{.*?\});\n", text, re.S).group(1))
     f32 = lambda b64: np.frombuffer(base64.b64decode(b64), dtype="<f4").reshape(-1, 3)  # noqa: E731
     tex = data["texture"]

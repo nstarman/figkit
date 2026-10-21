@@ -150,7 +150,7 @@ def export(
             entries[key]["description"] = descriptions[key]
     for key, value in json.items():
         file = path / f"{key}.json"
-        file.write_text(_json.dumps(value, indent=1))
+        file.write_text(_json.dumps(value, indent=1), encoding="utf-8")
         entries[key] = {"kind": "json", "file": file.name, "sha256": _sha256(file)}
         if key in descriptions:
             entries[key]["description"] = descriptions[key]
@@ -161,8 +161,8 @@ def export(
     if doi:
         manifest["doi"] = doi
     manifest["entries"] = entries
-    (path / "manifest.json").write_text(_json.dumps(manifest, indent=1))
-    (path / "README.md").write_text(_readme(manifest))
+    (path / "manifest.json").write_text(_json.dumps(manifest, indent=1), encoding="utf-8")
+    (path / "README.md").write_text(_readme(manifest), encoding="utf-8")
     return path
 
 
@@ -170,7 +170,7 @@ def read_manifest(path: str | Path) -> dict:
     """Read and validate ``path/manifest.json`` (keys and data-format version only)."""
     path = Path(path)
     try:
-        m = _json.loads((path / "manifest.json").read_text())
+        m = _json.loads((path / "manifest.json").read_text(encoding="utf-8"))
     except FileNotFoundError:
         raise DataError(f"{path / 'manifest.json'} not found") from None
     if extra := set(m) - _TOP_KEYS:
@@ -197,7 +197,7 @@ def load(path: str | Path) -> Dataset:
         if _sha256(file) != e["sha256"]:
             raise DataError(f"{file}: sha256 does not match the manifest")
         if e["kind"] == "json":
-            ds.json[key] = _json.loads(file.read_text())
+            ds.json[key] = _json.loads(file.read_text(encoding="utf-8"))
             continue
         a = np.load(file, allow_pickle=False)
         if a.dtype.str != e["dtype"] or list(a.shape) != e["shape"]:

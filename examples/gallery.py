@@ -48,9 +48,9 @@ BACK = ('<nav style="max-width:1200px;margin:0 auto;padding:12px 16px 0;font:14p
 
 
 def add_back_link(page: Path, href: str) -> None:
-    html = page.read_text()
+    html = page.read_text(encoding="utf-8")
     i = html.index(">", html.index("<body")) + 1
-    page.write_text(html[:i] + "\n" + BACK.format(href=href) + html[i:])
+    page.write_text(html[:i] + "\n" + BACK.format(href=href) + html[i:], encoding="utf-8")
 
 
 def build_example(slug: str, site: Path, data_dir: Path) -> None:
@@ -69,7 +69,7 @@ def main(site: Path) -> None:
     for slug, *_ in EXAMPLES:
         build_example(slug, site, site.parent / f"{site.name}-data")
     items = "\n".join(ITEM.format(slug=s, title=t, text=x, cite=c, url=u) for s, t, x, c, u in EXAMPLES)
-    (site / "index.html").write_text(PAGE.format(version=figkit.__version__, items=items))
+    (site / "index.html").write_text(PAGE.format(version=figkit.__version__, items=items), encoding="utf-8")
 
 
 if __name__ == "__main__":
