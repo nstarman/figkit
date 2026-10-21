@@ -4,6 +4,9 @@ export { createModel } from "figkit/model.js";
 export { parseNpy, asTyped } from "figkit/npy.js";
 export { loadData, FigkitDataError } from "figkit/data.js";
 export * as geom from "figkit/geom.js";
+export { createStage, dragHelper } from "figkit/stage.js";
+export { mount as mountGlobe, shade } from "figkit/globe.js";
+export { mount as mountSkyPanel, autoscale } from "figkit/skypanel.js";
 
 import { createModel } from "figkit/model.js";
 
@@ -23,6 +26,7 @@ export function showError(el, message, error) {
  */
 export async function run(app, el, { data, base = "data/", model = createModel() } = {}) {
   const controller = new AbortController();
+  el.figkitModel = model; // for debugging and tests
   model.set("data_source", data ?? null);
   model.set("data_base", base);
   try {

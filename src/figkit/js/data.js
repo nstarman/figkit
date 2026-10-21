@@ -24,6 +24,8 @@ const result = (m) => ({ name: m.name, meta: m.meta ?? {}, arrays: {}, json: {} 
  */
 export async function loadData(source, { fetch = globalThis.fetch, base = "data/" } = {}) {
   if (source && typeof source.get === "function") return fromModel(source);
+  // a single-file build registers its datasets as data: URLs on globalThis.FIGKIT_DATA
+  if (typeof source === "string" && globalThis.FIGKIT_DATA?.[source]) source = globalThis.FIGKIT_DATA[source];
   const [name, urlOf] = typeof source === "string"
     ? [source, (f) => `${base}${source}/${f}`]
     : [source.name, (f) => source.urls[f]];

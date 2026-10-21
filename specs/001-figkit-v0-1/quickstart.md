@@ -74,3 +74,12 @@ uv run pytest tests/test_smoke.py --browser chromium --browser firefox --browser
 ```
 
 Expected: pass for served and `file://` outputs; the drag test reports ≥ 30 fps on Chromium.
+
+## Results (2026-10-21, macOS, Playwright 1.64)
+
+- Steps 1–5: pass. JS acceptance prints `orbit1 48.0 orbit2 16.2 spray 87.6 nbody 87.2`.
+- Smoke tests, served and single file (`file://` with every non-`file:`/`data:`/`blob:` request
+  aborted): pass on Chromium 156 and WebKit 27.2. Firefox runs in CI only (Playwright's Firefox
+  cannot start on the development Mac; research R1).
+- Step 4 by hand with Wi-Fi off: replaced by the automated single-file smoke test above, which
+  blocks all network access; a manual check in desktop Chrome/Safari is left to the author.

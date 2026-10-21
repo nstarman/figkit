@@ -46,7 +46,6 @@ figkit.build(
     data: Iterable[str | Path] = (),     # dataset folders to include
     out: str | Path | None = None,       # served site folder
     single_file: str | Path | None = None,
-    entry: str = "widget.js",            # app module booted by the single file / notebook
     size_warning_mb: float = 50.0,
 ) -> figkit.BuildResult                  # .out, .single_file, .warnings
 ```

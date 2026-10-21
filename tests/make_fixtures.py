@@ -1,10 +1,11 @@
 """Write fixtures for the JS tests (js-tests/fixtures/), using numpy and figkit.export.
 
-Run before `node --test js-tests/`:  uv run python tests/make_fixtures.py
+Run before `node --test 'js-tests/*.test.js'`:  uv run python tests/make_fixtures.py
 """
 
 import json
 import shutil
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -57,6 +58,12 @@ def main():
             np.array([0.0, 1, 0])] + [v / np.linalg.norm(v) for v in rng.normal(size=(16, 3))]
     for v in dirs:
         expected["rotations"].append({"v": v.tolist(), "R": rotation_to_z(v).ravel().tolist()})
+
+    # the globe example's dataset, for the acceptance test
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "examples" / "globe"))
+    import export as globe_export
+
+    globe_export.main(OUT)
 
     (OUT / "expected.json").write_text(json.dumps(expected))
     print(f"wrote fixtures to {OUT}")

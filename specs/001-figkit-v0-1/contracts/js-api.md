@@ -28,8 +28,8 @@ Throws on other dtypes, big-endian or Fortran order.
 ```js
 loadData(source, { fetch = globalThis.fetch, base = "data/" } = {})
   → Promise<{ name, meta, arrays: { [entry]: { data, shape, dtype } }, json: { [entry]: any } }>
-// source: dataset name (fetched from `${base}${name}/`), a URL map produced by the single-file
-// build, or a model holding `manifest` and `npy_<entry>` traits (notebook).
+// source: dataset name (fetched from `${base}${name}/`, or taken from globalThis.FIGKIT_DATA[name]
+// in a single-file build), {name, urls}, or a model holding `manifest` and `npy_<entry>` traits.
 // Throws FigkitDataError with a message naming the missing file or version mismatch.
 ```
 
@@ -85,15 +85,16 @@ mount(el, model, {
                       mask?: Uint8Array /* n, highlighted segments */, readout?: string },
 }) → dispose
 // reads: views[id]; recomputes on change:views when views[id] changed
-export function autoscale(xy, points, pad = 0.55) → { cx, cy, half }   // pure, tested in node
+export function autoscale(xy, pad = 0.55) → { cx, cy, half }   // pure, tested in node; frames the line, not the points
 ```
 
 ## figkit/figkit.js
 
 ```js
 export * from the modules above;
-run(app, el, { data, base }) → Promise<dispose>  // standalone host: creates a model, awaits
-                                                  // initialize/render, passes an AbortSignal
+run(app, el, { data, base, model }) → Promise<dispose>  // standalone host: creates a model (also
+                                                  // el.figkitModel, for debugging), sets data_source /
+                                                  // data_base, awaits initialize/render with an AbortSignal
 showError(el, message)                            // plain on-page error box (textContent)
 ```
 
