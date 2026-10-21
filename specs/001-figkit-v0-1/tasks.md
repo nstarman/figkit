@@ -185,8 +185,8 @@ testable increment.
 - [X] T056 Extend `tests/test_smoke.py` with SC-002 (time to first panel readout < 2 s, served and single file) and SC-003 (programmatic 2 s marker drag on Chromium at `deviceScaleFactor: 2`, count rAF redraws, assert ≥ 30 fps, print the value)
 - [X] T057 [P] Measure SC-007: line counts of `examples/globe/{widget.js,index.html}` versus the prototype `globe_explorer.html`; record in `specs/001-figkit-v0-1/quickstart.md` notes
 - [X] T058 [P] Finalise `README.md` (install from tag, 10-line usage, gallery link) and `AGENTS.md` (drop the *(v0.1)* markers; layout, conventions, testing and releasing as built)
-- [ ] T059 Run the whole of quickstart.md; confirm the CI smoke matrix is green on chromium, firefox and webkit (Firefox is the R1 gate)
-- [ ] T060 Set `__version__ = "0.1.0"`, write the `## 0.1.0 — <date>` section in `CHANGELOG.md`, merge `001-figkit-v0-1` to `main`, tag `v0.1.0`, publish the release, and confirm the gallery deploys
+- [X] T059 Run the whole of quickstart.md; confirm the CI smoke matrix is green on chromium, firefox and webkit (Firefox is the R1 gate)
+- [X] T060 Set `__version__ = "0.1.0"`, write the `## 0.1.0 — <date>` section in `CHANGELOG.md`, merge `001-figkit-v0-1` to `main`, tag `v0.1.0`, publish the release, and confirm the gallery deploys
 
 ---
 
