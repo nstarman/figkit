@@ -16,7 +16,7 @@ and removes its listeners on dispose. Mount several components on one model to l
 
 Model: reads/writes `camera` (rotate by dragging the background) and `views`
 (`{id: [x, y, z]}`, drag a square). Calls `save_changes()` on pointer-up.
-Pure kernel: `shade(camera, texture, size, out)`.
+Pure kernel: `shade(camera, texture, size, out, base = [255, 255, 255])` — `base` is an `[r, g, b]` array (0–255), e.g. `rgb(cssVar(el, "--fk-bg", "#fff"))`.
 
 ## figkit/skypanel.js — `mount(el, model, opts)` (the general 2-D panel)
 

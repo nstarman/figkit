@@ -5,7 +5,7 @@
 // A view and its antipode are equivalent: a marker is drawn on the camera-facing end, and a drag
 // keeps the view on its own end of the line.
 
-import { createStage, dragHelper, cssVar, rgb } from "figkit/stage.js";
+import { createStage, dragHelper, cssVar, rgb, context2d } from "figkit/stage.js";
 import { mat3, trackball, project, unproject, facing, unit, dot } from "figkit/geom.js";
 
 const DRAG_STEP = 3; // shading-resolution divisor while rotating
@@ -28,7 +28,8 @@ function unitGrid(size) {
 
 /**
  * Shade the front hemisphere into `out` (RGBA, size×size): the texture sampled at each pixel's
- * direction, composited over `base` (the page background: white, or dark in dark mode), with
+ * direction, composited over `base` — an [r, g, b] array of 0–255 numbers, not a CSS colour string
+ * (use rgb() to convert one); the page background: white, or dark in dark mode — with
  * gentle limb shading. Pixels outside the disc are left untouched. texture: {data: Uint8Array,
  * shape: [H, W, 4]}, rows colatitude 0..π, columns azimuth 0..2π inclusive. Callers shade a smaller
  * size while dragging and let the canvas scale it.
@@ -100,7 +101,7 @@ export function mount(el, model, { texture, lines = {}, points = {}, colors = {}
     if (key === shadeKey) return;
     shadeKey = key;
     shadeCanvas.width = shadeCanvas.height = n;
-    const g = shadeCanvas.getContext("2d"), img = g.createImageData(n, n);
+    const g = context2d(shadeCanvas), img = g.createImageData(n, n);
     shade(camera, texture, n, img.data, base);
     g.putImageData(img, 0, 0);
   }

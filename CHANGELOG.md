@@ -16,8 +16,9 @@ A release with a breaking change that has no migration note is not tagged.
 - Responsive layout classes in `figkit.css`, driven by container queries (the app's own width,
   so they also adapt in narrow notebook cells): `.fk-split` (two columns, stacked below 760 px)
   and `.fk-grid-2` (a 2 × 2-style grid, one column below 320 px).
-- `cssVar(el, name, fallback)` and `rgb(color)` in `figkit/stage.js` (re-exported by `figkit.js`).
-- `shade(camera, texture, size, out, base)`: optional background colour to composite over.
+- `cssVar(el, name, fallback)`, `rgb(color)` (a frozen `[r, g, b]`) and `context2d(canvas)` (a clear error
+  instead of a null context) in `figkit/stage.js`, re-exported by `figkit.js`.
+- `shade(camera, texture, size, out, base)`: optional background `[r, g, b]` (0–255) to composite over.
 
 ### Fixed
 

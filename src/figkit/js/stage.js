@@ -1,11 +1,18 @@
 // A canvas that fills its element, is sharp on high-DPI screens and is drawn in CSS pixels;
 // redraws are coalesced to one per animation frame. Plus a pointer-drag helper.
 
+/** A canvas's 2-D context, or a clear error if the browser cannot provide one. */
+export function context2d(canvas, options) {
+  const ctx = canvas.getContext("2d", options);
+  if (!ctx) throw new Error("figkit: this browser could not provide a 2-D canvas context");
+  return ctx;
+}
+
 export function createStage(el, { draw, onResize } = {}) {
   const canvas = document.createElement("canvas");
   canvas.style.cssText = "display:block;width:100%;height:100%;touch-action:none";
   el.appendChild(canvas);
-  const stage = { canvas, ctx: canvas.getContext("2d"), width: 0, height: 0, dpr: 1, requestDraw, dispose };
+  const stage = { canvas, ctx: context2d(canvas), width: 0, height: 0, dpr: 1, requestDraw, dispose };
   let pending = false, disposed = false, mq = null;
 
   function requestDraw() {
@@ -58,8 +65,7 @@ export function rgb(color) {
   if (!probe) {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 1;
-    probe = canvas.getContext("2d", { willReadFrequently: true });
-    if (!probe) throw new Error("figkit: a 2-D canvas context is needed to resolve colours");
+    probe = context2d(canvas, { willReadFrequently: true });
   }
   probe.clearRect(0, 0, 1, 1);
   probe.fillStyle = "#000"; probe.fillStyle = color; probe.fillRect(0, 0, 1, 1);
