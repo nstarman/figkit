@@ -125,10 +125,16 @@ def test_figkit_test_command(tmp_path):
 
 def test_text_io_is_utf8():
     """Every text read/write in the package names UTF-8: the shipped JS, CSS and generated READMEs
-    contain non-ASCII characters, which a platform default (e.g. cp1252 on Windows) would break."""
-    import re
+    contain non-ASCII characters, which a platform default (e.g. cp1252 on Windows) would break.
+    Checked on the syntax tree, so a call split over several lines is judged correctly."""
+    import ast
 
-    src = JS.parent
-    bad = [f"{p.name}:{i}" for p in src.rglob("*.py") for i, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1)
-           if re.search(r"\.(read_text|write_text)\(", line) and "encoding=" not in line]
+    bad = []
+    for p in JS.parent.rglob("*.py"):
+        for node in ast.walk(ast.parse(p.read_text(encoding="utf-8"))):
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr in ("read_text", "write_text")):
+                enc = next((k.value for k in node.keywords if k.arg == "encoding"), None)
+                if not (isinstance(enc, ast.Constant) and str(enc.value).lower().replace("_", "-") == "utf-8"):
+                    bad.append(f"{p.name}:{node.lineno}")
     assert not bad, bad
