@@ -45,7 +45,7 @@ CHANGELOG.md           every release; migration notes for breaking changes
 
 ```bash
 uv run pytest
-node --test js-tests/
+node --test 'js-tests/*.test.js'
 ```
 
 ## Releasing *(v0.1)*

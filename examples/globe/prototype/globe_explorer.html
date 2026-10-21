@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Globe explorer</title>
+<style>
+  body { margin: 0; font: 13px system-ui, sans-serif; background: #fff; color: #222; }
+  main { display: flex; flex-wrap: wrap; gap: 16px; padding: 16px; align-items: flex-start; }
+  #globe { cursor: grab; touch-action: none; }
+  #globe.dragging { cursor: grabbing; }
+  #panels { display: grid; grid-template-columns: repeat(2, 280px); gap: 12px; }
+  .panel { border: 2px solid; border-radius: 4px; padding: 6px; }
+  .panel h3 { margin: 0 0 4px; font-size: 13px; display: flex; justify-content: space-between; }
+  .panel .info { font-size: 11px; color: #555; display: flex; justify-content: space-between; align-items: center; }
+  button { font: inherit; font-size: 11px; padding: 2px 8px; cursor: pointer; }
+  #bar { width: 100%; display: flex; gap: 8px; align-items: center; color: #555; }
+</style>
+</head>
+<body>
+<main>
+  <div id="bar">
+    <button id="reset-camera">Reset camera</button>
+    <button id="reset-views">Reset all views</button>
+    <span>Drag the globe to turn it. Drag a square to look at that stream from there. Red: non-concave (𝒜 ≤ 0).</span>
+  </div>
+  <canvas id="globe"></canvas>
+  <div id="panels"></div>
+</main>
+<script>
+const DATA = __DATA__;
+
+const f32 = (b64) => new Float32Array(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer);
+const u8 = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const norm = (a) => Math.hypot(a[0], a[1], a[2]);
+const unit = (a) => { const n = norm(a); return [a[0] / n, a[1] / n, a[2] / n]; };
+const rows = (m) => [m.slice(0, 3), m.slice(3, 6), m.slice(6, 9)];
+const mulT = (M, v) => [0, 1, 2].map((i) => M[0][i] * v[0] + M[1][i] * v[1] + M[2][i] * v[2]); // M^T v
+const mul = (M, v) => M.map((r) => dot(r, v));
+const triples = (a) => Array.from({ length: a.length / 3 }, (_, i) => [a[3 * i], a[3 * i + 1], a[3 * i + 2]]);
+
+// Rotation taking unit v to +z about v x z: the paper's rotation_matrix_from_viewing_angles.
+function skyRotation(v) {
+  const s = Math.hypot(v[0], v[1]), c = v[2];
+  if (s < 1e-12) return c > 0 ? [[1, 0, 0], [0, 1, 0], [0, 0, 1]] : [[1, 0, 0], [0, -1, 0], [0, 0, -1]];
+  const kx = v[1] / s, ky = -v[0] / s; // k = v x z, normalised (k_z = 0)
+  const K = [[0, 0, ky], [0, 0, -kx], [-ky, kx, 0]];
+  const K2 = K.map((r) => [0, 1, 2].map((j) => r[0] * K[0][j] + r[1] * K[1][j] + r[2] * K[2][j]));
+  return [0, 1, 2].map((i) => [0, 1, 2].map((j) => (i === j ? 1 : 0) + s * K[i][j] + (1 - c) * K2[i][j]));
+}
+
+// ── Streams ─────────────────────────────────────────────────────────────────
+const R_GLOBE = DATA.rGlobe, POW = DATA.radialPower, H = Math.tan(DATA.capDeg * Math.PI / 180);
+const squash = (p) => { const r = Math.max(norm(p), 1e-9); const f = Math.pow(r / R_GLOBE, POW) / r; return [p[0] * f, p[1] * f, p[2] * f]; };
+
+const streams = DATA.streams.map((s) => {
+  const T = rows(s.T);
+  const pos = triples(f32(s.pos)), pts = triples(f32(s.points));
+  return {
+    ...s, T, pos, d1: triples(f32(s.d1)), d2: triples(f32(s.d2)), pts,
+    globeLine: pos.map((p) => squash(mulT(T, p))),
+    globePts: pts.filter((_, i) => i % 3 === 0).map((p) => squash(mulT(T, p))),
+    paperView: s.view.slice(), viewDir: s.view.slice(),
+  };
+});
+
+// Sky axes (simulation frame) of the panel for view n (a,b,c frame), with the panel's rotation.
+function skyAxes(s, n) {
+  const R = skyRotation(unit(mul(s.T, n)));
+  const a = s.panelRotDeg * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+  const ex = [0, 1, 2].map((i) => c * R[0][i] - sn * R[1][i]);
+  const ey = [0, 1, 2].map((i) => sn * R[0][i] + c * R[1][i]);
+  return { R, ex, ey };
+}
+
+// Project and classify with is_nonconcave: non-concave where the projected curvature
+// normal has no component toward the projected centre.
+function project(s) {
+  const { ex, ey } = skyAxes(s, s.viewDir);
+  const P = (v) => [dot(ex, v), dot(ey, v)];
+  const q = s.pos.map(P), p1 = s.d1.map(P), p2 = s.d2.map(P);
+  const bad = q.map((qi, i) => {
+    const t = p1[i], a = p2[i], k = (a[0] * t[0] + a[1] * t[1]) / (t[0] * t[0] + t[1] * t[1]);
+    const n = [a[0] - k * t[0], a[1] - k * t[1]];
+    return -(n[0] * qi[0] + n[1] * qi[1]) <= 0;
+  });
+  return { q, bad, pts: s.pts.map(P) };
+}
+
+// ── Globe ───────────────────────────────────────────────────────────────────
+const canvas = document.getElementById("globe"), ctx = canvas.getContext("2d");
+const DPR = window.devicePixelRatio || 1;
+let SIZE, RAD, CX, CY;
+function resize() {
+  SIZE = Math.max(320, Math.min(window.innerWidth - 640, window.innerHeight - 80, 720));
+  canvas.style.width = canvas.style.height = SIZE + "px";
+  canvas.width = canvas.height = Math.round(SIZE * DPR);
+  RAD = 0.46 * canvas.width; CX = CY = canvas.width / 2;
+  shade = null;
+}
+let Q = rows(DATA.camera); // rows: page-right, page-up, toward-camera, in the (a,b,c) frame
+const toScreen = (p) => [CX + RAD * dot(Q[0], p), CY - RAD * dot(Q[1], p), dot(Q[2], p)];
+
+const TEX = { h: DATA.texture.h, w: DATA.texture.w, rgba: u8(DATA.texture.rgba) };
+let shade = null; // ImageData of the shaded front hemisphere, rebuilt when the camera turns
+function buildShade() {
+  const N = 2 * Math.ceil(RAD), img = ctx.createImageData(N, N), d = img.data;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const u = (x + 0.5 - N / 2) / RAD, v = -(y + 0.5 - N / 2) / RAD, rr = u * u + v * v;
+    if (rr > 1) continue;
+    const w = Math.sqrt(1 - rr), p = mulT(Q, [u, v, w]);
+    const i = Math.round(Math.acos(Math.max(-1, Math.min(1, p[2]))) / Math.PI * (TEX.h - 1));
+    const az = (Math.atan2(p[1], p[0]) + 2 * Math.PI) % (2 * Math.PI);
+    const j = Math.round(az / (2 * Math.PI) * (TEX.w - 1)), t = 4 * (i * TEX.w + j);
+    const a = TEX.rgba[t + 3] / 255, limb = 0.86 + 0.14 * w, o = 4 * (y * N + x);
+    for (let c = 0; c < 3; c++) d[o + c] = limb * ((1 - a) * 255 + a * TEX.rgba[t + c]);
+    d[o + 3] = 255;
+  }
+  return img;
+}
+
+function squareCorners(s) {
+  const toward = dot(Q[2], s.viewDir) >= 0 ? 1 : -1; // a view and its antipode are equivalent
+  const n = s.viewDir.map((x) => toward * x);
+  const { ex, ey } = skyAxes(s, s.viewDir);
+  const ea = mulT(s.T, ex), eb = mulT(s.T, ey); // to the (a,b,c) frame
+  return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) =>
+    toScreen(unit([0, 1, 2].map((k) => n[k] + H * (i * ea[k] + j * eb[k])))));
+}
+
+function drawGlobe() {
+  if (!shade) shade = buildShade();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.putImageData(shade, Math.round(CX - shade.width / 2), Math.round(CY - shade.height / 2));
+  ctx.beginPath(); ctx.arc(CX, CY, RAD, 0, 2 * Math.PI); ctx.strokeStyle = "#999"; ctx.lineWidth = DPR; ctx.stroke();
+
+  // principal-plane great circles and the a, b, c axes
+  ctx.lineWidth = 0.6 * DPR;
+  for (const k of [0, 1, 2]) {
+    ctx.beginPath();
+    for (let t = 0; t <= 200; t++) {
+      const th = 2 * Math.PI * t / 200, p = [0, 0, 0];
+      p[(k + 1) % 3] = Math.cos(th); p[(k + 2) % 3] = Math.sin(th);
+      const [x, y, z] = toScreen(p);
+      ctx.strokeStyle = "rgba(120,120,120,0.6)";
+      t ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+    const e = [0, 0, 0]; e[k] = 1.12;
+    const [x0, y0] = toScreen([0, 0, 0]), [x1, y1] = toScreen(e);
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.strokeStyle = "#333"; ctx.stroke();
+    ctx.fillStyle = "#333"; ctx.font = `${13 * DPR}px serif`; ctx.fillText("abc"[k], x1 + 4 * DPR, y1);
+  }
+
+  // streams: back half faint, front half strong
+  for (const s of streams) {
+    ctx.fillStyle = s.color;
+    for (const p of s.globePts) {
+      const [x, y, z] = toScreen(p);
+      ctx.globalAlpha = z >= 0 ? 0.35 : 0.12; ctx.fillRect(x, y, DPR, DPR);
+    }
+    ctx.lineWidth = 1.6 * DPR; ctx.strokeStyle = s.color;
+    for (const front of [false, true]) {
+      ctx.globalAlpha = front ? 0.95 : 0.3; ctx.beginPath();
+      for (let i = 1; i < s.globeLine.length; i++) {
+        const a = toScreen(s.globeLine[i - 1]), b = toScreen(s.globeLine[i]);
+        if ((a[2] + b[2] >= 0) === front) { ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); }
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  for (const s of streams) {
+    const c = squareCorners(s);
+    s.screenSquare = c;
+    ctx.beginPath(); c.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
+    ctx.fillStyle = s.color; ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = "#000"; ctx.lineWidth = 1.2 * DPR; ctx.stroke();
+  }
+}
+
+// ── Panels ──────────────────────────────────────────────────────────────────
+const panelBox = document.getElementById("panels");
+for (const s of streams) {
+  const el = document.createElement("div");
+  el.className = "panel"; el.style.borderColor = s.color;
+  el.innerHTML = `<h3><span>${s.name.replace("$N$", "N")}</span><span class="frac"></span></h3>
+    <canvas width="${268 * DPR}" height="${268 * DPR}" style="width:268px;height:268px"></canvas>
+    <div class="info"><span class="angles"></span><button>Paper view</button></div>`;
+  el.querySelector("button").onclick = () => { s.viewDir = s.paperView.slice(); redraw(); };
+  panelBox.appendChild(el);
+  s.panel = el;
+}
+
+function drawPanel(s) {
+  const { q, bad, pts } = project(s);
+  const c = s.panel.querySelector("canvas"), g = c.getContext("2d"), W = c.width;
+  const xs = q.map((p) => p[0]), ys = q.map((p) => p[1]);
+  let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const half = 0.55 * Math.max(x1 - x0, y1 - y0, 1), mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+  const S = (p) => [W / 2 + (p[0] - mx) / half * W / 2, W / 2 - (p[1] - my) / half * W / 2];
+  g.clearRect(0, 0, W, W);
+  g.fillStyle = s.color; g.globalAlpha = 0.18;
+  for (const p of pts) { const [x, y] = S(p); g.fillRect(x, y, DPR, DPR); }
+  g.globalAlpha = 1; g.lineCap = "round";
+  g.strokeStyle = "#FF7F7F"; g.lineWidth = 5 * DPR; g.beginPath();
+  for (let i = 1; i < q.length; i++) if (bad[i] && bad[i - 1]) { const a = S(q[i - 1]), b = S(q[i]); g.moveTo(...a); g.lineTo(...b); }
+  g.stroke();
+  g.strokeStyle = s.color; g.lineWidth = 1.6 * DPR; g.beginPath();
+  q.forEach((p, i) => { const [x, y] = S(p); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+  g.stroke();
+  const [ox, oy] = S([0, 0]), r = 5 * DPR;
+  g.strokeStyle = "#000"; g.lineWidth = 2 * DPR; g.beginPath();
+  g.moveTo(ox - r, oy - r); g.lineTo(ox + r, oy + r); g.moveTo(ox - r, oy + r); g.lineTo(ox + r, oy - r); g.stroke();
+
+  const frac = bad.filter(Boolean).length / bad.length;
+  s.panel.querySelector(".frac").textContent = `non-concave ${(100 * frac).toFixed(1)}%`;
+  const v = unit(mul(s.T, s.viewDir)), deg = 180 / Math.PI;
+  s.panel.querySelector(".angles").textContent =
+    `θ ${(Math.acos(v[2]) * deg).toFixed(1)}°, φ ${(Math.atan2(v[1], v[0]) * deg).toFixed(1)}° (sim frame)`;
+}
+
+function redraw(panels = true) { drawGlobe(); if (panels) streams.forEach(drawPanel); }
+
+// ── Interaction ─────────────────────────────────────────────────────────────
+function inside(poly, x, y) {
+  let hit = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) hit = !hit;
+  }
+  return hit;
+}
+let drag = null;
+const pos = (e) => { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) * DPR, (e.clientY - r.top) * DPR]; };
+canvas.addEventListener("pointerdown", (e) => {
+  const [x, y] = pos(e);
+  const s = [...streams].reverse().find((s) => s.screenSquare && inside(s.screenSquare, x, y));
+  // keep the view on its own end of the line, so the panel does not mirror mid-drag
+  drag = { stream: s, last: [x, y], sign: s && dot(Q[2], s.viewDir) < 0 ? -1 : 1 };
+  canvas.setPointerCapture(e.pointerId); canvas.classList.add("dragging");
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const [x, y] = pos(e);
+  if (drag.stream) { // the point of the front hemisphere under the cursor
+    let u = (x - CX) / RAD, v = -(y - CY) / RAD;
+    const rr = u * u + v * v;
+    if (rr > 1) { u /= Math.sqrt(rr); v /= Math.sqrt(rr); }
+    drag.stream.viewDir = unit(mulT(Q, [u, v, Math.sqrt(Math.max(0, 1 - u * u - v * v))])).map((c) => drag.sign * c);
+    drawGlobe(); drawPanel(drag.stream);
+  } else { // turn the globe: horizontal drags about page-up, vertical about page-right
+    const ay = (x - drag.last[0]) / RAD, ax = (y - drag.last[1]) / RAD;
+    const Ry = [[Math.cos(ay), 0, Math.sin(ay)], [0, 1, 0], [-Math.sin(ay), 0, Math.cos(ay)]];
+    const Rx = [[1, 0, 0], [0, Math.cos(ax), -Math.sin(ax)], [0, Math.sin(ax), Math.cos(ax)]];
+    const M = Rx.map((r) => [0, 1, 2].map((j) => r[0] * Ry[0][j] + r[1] * Ry[1][j] + r[2] * Ry[2][j]));
+    Q = M.map((r) => [0, 1, 2].map((j) => r[0] * Q[0][j] + r[1] * Q[1][j] + r[2] * Q[2][j]));
+    shade = null; drawGlobe();
+  }
+  drag.last = [x, y];
+});
+const end = () => { drag = null; canvas.classList.remove("dragging"); };
+canvas.addEventListener("pointerup", end);
+canvas.addEventListener("pointercancel", end);
+document.getElementById("reset-camera").onclick = () => { Q = rows(DATA.camera); shade = null; drawGlobe(); };
+document.getElementById("reset-views").onclick = () => { streams.forEach((s) => (s.viewDir = s.paperView.slice())); redraw(); };
+window.addEventListener("resize", () => { resize(); drawGlobe(); });
+
+resize();
+redraw();
+</script>
+</body>
+</html>
