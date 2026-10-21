@@ -5,7 +5,7 @@
 // A view and its antipode are equivalent: a marker is drawn on the camera-facing end, and a drag
 // keeps the view on its own end of the line.
 
-import { createStage, dragHelper } from "figkit/stage.js";
+import { createStage, dragHelper, cssVar, rgb, context2d } from "figkit/stage.js";
 import { mat3, trackball, project, unproject, facing, unit, dot } from "figkit/geom.js";
 
 const DRAG_STEP = 3; // shading-resolution divisor while rotating
@@ -28,11 +28,14 @@ function unitGrid(size) {
 
 /**
  * Shade the front hemisphere into `out` (RGBA, size×size): the texture sampled at each pixel's
- * direction, composited over white, with gentle limb darkening. Pixels outside the disc are left
- * untouched. texture: {data: Uint8Array, shape: [H, W, 4]}, rows colatitude 0..π, columns
- * azimuth 0..2π inclusive. Callers shade a smaller size while dragging and let the canvas scale it.
+ * direction, composited over `base` — an [r, g, b] array of 0–255 numbers, not a CSS colour string
+ * (use rgb() to convert one); the page background: white, or dark in dark mode — with
+ * gentle limb shading. Pixels outside the disc are left untouched. texture: {data: Uint8Array,
+ * shape: [H, W, 4]}, rows colatitude 0..π, columns azimuth 0..2π inclusive. Callers shade a smaller
+ * size while dragging and let the canvas scale it.
  */
-export function shade(camera, texture, size, out) {
+export function shade(camera, texture, size, out, base = [255, 255, 255]) {
+  const dark = base[0] + base[1] + base[2] < 384; // on a dark page, lift the disc slightly instead
   const [H, W] = texture.shape, tex = texture.data, g = unitGrid(size);
   const [a0, a1, a2, a3, a4, a5, a6, a7, a8] = camera;
   const ki = (H - 1) / Math.PI, kj = (W - 1) / (2 * Math.PI);
@@ -45,10 +48,10 @@ export function shade(camera, texture, size, out) {
     let az = Math.atan2(py, px);
     if (az < 0) az += 2 * Math.PI;
     const t = 4 * (Math.round(Math.acos(pz > 1 ? 1 : pz < -1 ? -1 : pz) * ki) * W + Math.round(az * kj));
-    const al = tex[t + 3] / 255, limb = 0.86 + 0.14 * w, base = (1 - al) * 255;
-    out[o] = limb * (base + al * tex[t]);
-    out[o + 1] = limb * (base + al * tex[t + 1]);
-    out[o + 2] = limb * (base + al * tex[t + 2]);
+    const al = tex[t + 3] / 255, limb = dark ? 1.12 + 0.18 * w : 0.86 + 0.14 * w;
+    out[o] = Math.min(255, limb * ((1 - al) * base[0] + al * tex[t]));
+    out[o + 1] = Math.min(255, limb * ((1 - al) * base[1] + al * tex[t + 1]));
+    out[o + 2] = Math.min(255, limb * ((1 - al) * base[2] + al * tex[t + 2]));
     out[o + 3] = 255;
   }
   return out;
@@ -91,26 +94,27 @@ export function mount(el, model, { texture, lines = {}, points = {}, colors = {}
     draw,
   });
 
-  function drawShade(camera) {
+  function drawShade(camera, base) {
     // while rotating, shade at 1/DRAG_STEP resolution and let drawImage scale it up
     const n = Math.max(2, Math.round(2 * geo.r * stage.dpr / (rotating ? DRAG_STEP : 1)));
-    const key = `${camera.join()}|${n}`;
+    const key = `${camera.join()}|${n}|${base}`;
     if (key === shadeKey) return;
     shadeKey = key;
     shadeCanvas.width = shadeCanvas.height = n;
-    const g = shadeCanvas.getContext("2d"), img = g.createImageData(n, n);
-    shade(camera, texture, n, img.data);
+    const g = context2d(shadeCanvas), img = g.createImageData(n, n);
+    shade(camera, texture, n, img.data, base);
     g.putImageData(img, 0, 0);
   }
 
   function draw({ ctx, width, height }) {
     const camera = model.get("camera"), views = model.get("views") ?? {};
     const P3 = (p) => project(camera, p, geo);
+    const fg = cssVar(box, "--fk-fg", "#222"), muted = cssVar(box, "--fk-muted", "#666"); // theme (light/dark)
     ctx.clearRect(0, 0, width, height);
-    drawShade(camera);
+    drawShade(camera, rgb(cssVar(box, "--fk-bg", "#fff")));
     ctx.drawImage(shadeCanvas, geo.cx - geo.r, geo.cy - geo.r, 2 * geo.r, 2 * geo.r);
     ctx.beginPath(); ctx.arc(geo.cx, geo.cy, geo.r, 0, 2 * Math.PI);
-    ctx.strokeStyle = "#999"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.strokeStyle = muted; ctx.lineWidth = 1; ctx.stroke();
 
     // principal-plane great circles and the a, b, c axes
     ctx.lineWidth = 0.6;
@@ -125,8 +129,8 @@ export function mount(el, model, { texture, lines = {}, points = {}, colors = {}
       ctx.strokeStyle = "rgba(120,120,120,0.6)"; ctx.stroke();
       const e = [0, 0, 0]; e[k] = 1.12;
       const [x0, y0] = P3([0, 0, 0]), [x1, y1] = P3(e);
-      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.strokeStyle = "#333"; ctx.stroke();
-      ctx.fillStyle = "#333"; ctx.font = "13px serif"; ctx.fillText("abc"[k], x1 + 4, y1);
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.strokeStyle = fg; ctx.stroke();
+      ctx.fillStyle = fg; ctx.font = "italic 15px serif"; ctx.fillText("abc"[k], x1 + 4, y1);
     }
 
     // streams: back half faint, front half strong

@@ -100,7 +100,7 @@ def test_manifest_contents_and_readme(tmp_path):
         meta={"streams": ["a"]}, json={"style": {"c": "#fff"}}, units={"track": "kpc"},
         descriptions={"track": "A track"}, licence="MIT", doi="10.1/x",
     )
-    m = json.loads((path / "manifest.json").read_text())
+    m = json.loads((path / "manifest.json").read_text(encoding="utf-8"))
     assert m["figkit_data"] == 1 and m["figkit"] == figkit.__version__ and m["name"] == "globe"
     e = m["entries"]["track"]
     assert e == {"kind": "array", "file": "track.npy", "dtype": "<f4", "shape": [5, 3],
@@ -109,13 +109,13 @@ def test_manifest_contents_and_readme(tmp_path):
     assert m["entries"]["style"]["kind"] == "json"
     ds = figkit.load(path)
     assert ds.json["style"] == {"c": "#fff"} and ds.meta == {"streams": ["a"]}
-    readme = (path / "README.md").read_text()
+    readme = (path / "README.md").read_text(encoding="utf-8")
     assert "track.npy" in readme and "np.load" in readme and "kpc" in readme
 
 
 def test_load_verifies(tmp_path):
     path = figkit.export(tmp_path, "ds", {"a": np.arange(4, dtype=np.int32)})
-    m = json.loads((path / "manifest.json").read_text())
+    m = json.loads((path / "manifest.json").read_text(encoding="utf-8"))
 
     raw = (path / "a.npy").read_bytes()
     (path / "a.npy").write_bytes(raw[:-1] + bytes([raw[-1] ^ 1]))
@@ -124,7 +124,7 @@ def test_load_verifies(tmp_path):
     (path / "a.npy").write_bytes(raw)
 
     for patch, msg in [({"figkit_data": 2}, "figkit_data"), ({"extra": 1}, "extra")]:
-        (path / "manifest.json").write_text(json.dumps({**m, **patch}))
+        (path / "manifest.json").write_text(json.dumps({**m, **patch}), encoding="utf-8")
         with pytest.raises(DataError, match=msg):
             figkit.load(path)
 

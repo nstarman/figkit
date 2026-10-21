@@ -2,7 +2,7 @@
 // Built for sky projections but general: `views[id]` may be any value (a direction, an angle, …);
 // the app's `compute(view)` turns it into what to draw. Recomputes only when that entry changes.
 
-import { createStage } from "figkit/stage.js";
+import { createStage, cssVar } from "figkit/stage.js";
 
 /** Equal-aspect view of an n×2 array of points: centre and half-width, at least `pad` wide. */
 export function autoscale(xy, pad = 0.55) {
@@ -63,7 +63,7 @@ export function mount(el, model, { id, title, color = "#555", highlight = "#FF7F
     for (let k = 0; k < xy.length; k += 2) (k ? ctx.lineTo(X(xy[k]), Y(xy[k + 1])) : ctx.moveTo(X(xy[k]), Y(xy[k + 1])));
     ctx.stroke();
     const ox = X(0), oy = Y(0), r = 5;
-    ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.beginPath();
+    ctx.strokeStyle = cssVar(el, "--fk-fg", "#000"); ctx.lineWidth = 2; ctx.beginPath();
     ctx.moveTo(ox - r, oy - r); ctx.lineTo(ox + r, oy + r); ctx.moveTo(ox - r, oy + r); ctx.lineTo(ox + r, oy - r);
     ctx.stroke();
   }

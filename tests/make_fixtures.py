@@ -65,7 +65,7 @@ def main():
 
     globe_export.main(OUT)
 
-    (OUT / "expected.json").write_text(json.dumps(expected))
+    (OUT / "expected.json").write_text(json.dumps(expected), encoding="utf-8")
     print(f"wrote fixtures to {OUT}")
 
 

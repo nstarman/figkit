@@ -34,12 +34,10 @@ export default {
       "Drag the globe to turn it; drag a square to view that stream from there. Red: non-concave.",
     );
     const grid = document.createElement("div");
-    grid.className = "fk-grid";
-    grid.style.gridTemplateColumns = "minmax(280px, 1.4fr) minmax(320px, 1fr)";
+    grid.className = "fk-split"; // globe beside the panels; stacked when the app is narrow
     const globeEl = document.createElement("div");
     const panels = document.createElement("div");
-    panels.className = "fk-grid";
-    panels.style.gridTemplateColumns = "1fr 1fr";
+    panels.className = "fk-grid-2";
     grid.append(globeEl, panels);
     el.replaceChildren(toolbar, grid);
 

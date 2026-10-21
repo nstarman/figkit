@@ -22,10 +22,10 @@ def make_app(tmp_path, widget='import { createModel } from "figkit/model.js";\ne
         '<!doctype html><html><head><title>t</title>'
         '<link rel="stylesheet" href="figkit/figkit.css"></head><body><div id="el"></div>'
         '<script type="module">import { run } from "figkit/figkit.js"; import app from "app/widget.js";'
-        ' run(app, document.getElementById("el"));</script></body></html>')
-    (app / "widget.js").write_text(widget)
-    (app / "notes.md").write_text("not copied")
-    (app / "widget.test.js").write_text("not copied")
+        ' run(app, document.getElementById("el"));</script></body></html>', encoding="utf-8")
+    (app / "widget.js").write_text(widget, encoding="utf-8")
+    (app / "notes.md").write_text("not copied", encoding="utf-8")
+    (app / "widget.test.js").write_text("not copied", encoding="utf-8")
     return app
 
 
@@ -33,7 +33,7 @@ def test_served_layout(tmp_path):
     data = figkit.export(tmp_path / "d", "ds", {"a": np.zeros(2)})
     res = figkit.build(make_app(tmp_path), data=[data], out=tmp_path / "site")
     site = res.out
-    html = (site / "index.html").read_text()
+    html = (site / "index.html").read_text(encoding="utf-8")
     assert f'<meta name="figkit-version" content="{V}">' in html
     imap = json.loads(html.split('<script type="importmap">')[1].split("</script>")[0])
     assert imap == {"imports": {"figkit/": f"./vendor/figkit-{V}/", "app/": "./"}}
@@ -61,8 +61,8 @@ def test_import_checks(tmp_path, widget, msg):
 
 def test_rejects_other_data_format(tmp_path):
     data = figkit.export(tmp_path / "d", "ds", {"a": np.zeros(2)})
-    m = json.loads((data / "manifest.json").read_text())
-    (data / "manifest.json").write_text(json.dumps({**m, "figkit_data": 2}))
+    m = json.loads((data / "manifest.json").read_text(encoding="utf-8"))
+    (data / "manifest.json").write_text(json.dumps({**m, "figkit_data": 2}), encoding="utf-8")
     with pytest.raises(BuildError, match="figkit_data 2"):
         figkit.build(make_app(tmp_path), data=[data], out=tmp_path / "site")
 
@@ -76,7 +76,7 @@ def test_cli(tmp_path):
     run = lambda *a: subprocess.run([sys.executable, "-m", "figkit.cli", *a], capture_output=True, text=True)  # noqa: E731
     assert run("build", str(app), "--out", str(tmp_path / "s")).returncode == 0
     assert run("build", str(app)).returncode == 2
-    (app / "widget.js").write_text('import "./x.js";\n')
+    (app / "widget.js").write_text('import "./x.js";\n', encoding="utf-8")
     r = run("build", str(app), "--out", str(tmp_path / "s2"))
     assert r.returncode == 1 and "widget.js:1" in r.stderr
     assert run("--version").stdout.strip().endswith(V)
@@ -86,7 +86,7 @@ def test_cli(tmp_path):
 
 def test_inline_modules(tmp_path):
     app = make_app(tmp_path, 'import { a } from "app/a.js";\nexport default { render() { return a; } };\n')
-    (app / "a.js").write_text('import { createModel } from "figkit/model.js";\nexport const a = createModel;\n')
+    (app / "a.js").write_text('import { createModel } from "figkit/model.js";\nexport const a = createModel;\n', encoding="utf-8")
     src = figkit.inline_modules("app/widget.js", roots={"figkit/": JS, "app/": app})
     assert '"figkit/' not in src and '"app/' not in src and "importmap" not in src
     assert src.count("data:text/javascript;base64,") == 1  # a.js, with model.js nested inside it
@@ -94,7 +94,7 @@ def test_inline_modules(tmp_path):
 
 def test_inline_cycle(tmp_path):
     app = make_app(tmp_path, 'import "app/a.js";\nexport default {};\n')
-    (app / "a.js").write_text('import "app/widget.js";\n')
+    (app / "a.js").write_text('import "app/widget.js";\n', encoding="utf-8")
     with pytest.raises(BuildError, match="cycle"):
         figkit.inline_modules("app/widget.js", roots={"figkit/": JS, "app/": app})
 
@@ -103,7 +103,7 @@ def test_single_file(tmp_path):
     data = figkit.export(tmp_path / "d", "ds", {"a": np.zeros(2)})
     res = figkit.build(make_app(tmp_path), data=[data], single_file=tmp_path / "x.html",
                        size_warning_mb=1e-6)
-    html = res.single_file.read_text()
+    html = res.single_file.read_text(encoding="utf-8")
     assert f'<meta name="figkit-version" content="{V}">' in html
     assert "importmap" not in html and '"figkit/' not in html and '"app/' not in html
     assert "globalThis.FIGKIT_DATA" in html and "--fk-bg" in html  # data and figkit.css inlined
@@ -113,11 +113,28 @@ def test_single_file(tmp_path):
 def test_figkit_test_command(tmp_path):
     app = make_app(tmp_path)
     (app / "widget.test.js").unlink()  # placeholder text, not a test
-    (app / "science.js").write_text('import { dot } from "figkit/geom.js";\nexport const f = () => dot([1, 2, 3], [1, 1, 1]);\n')
+    (app / "science.js").write_text('import { dot } from "figkit/geom.js";\nexport const f = () => dot([1, 2, 3], [1, 1, 1]);\n', encoding="utf-8")
     (app / "science.test.js").write_text(
         'import { test } from "node:test";\nimport assert from "node:assert/strict";\n'
-        'import { f } from "app/science.js";\ntest("f", () => assert.equal(f(), 6));\n')
+        'import { f } from "app/science.js";\ntest("f", () => assert.equal(f(), 6));\n', encoding="utf-8")
     run = lambda: subprocess.run([sys.executable, "-m", "figkit.cli", "test", str(app)], capture_output=True, text=True)  # noqa: E731
     assert run().returncode == 0
-    (app / "science.test.js").write_text((app / "science.test.js").read_text().replace("6)", "7)"))
+    (app / "science.test.js").write_text((app / "science.test.js").read_text(encoding="utf-8").replace("6)", "7)"))
     assert run().returncode != 0
+
+
+def test_text_io_is_utf8():
+    """Every text read/write in the package names UTF-8: the shipped JS, CSS and generated READMEs
+    contain non-ASCII characters, which a platform default (e.g. cp1252 on Windows) would break.
+    Checked on the syntax tree, so a call split over several lines is judged correctly."""
+    import ast
+
+    bad = []
+    for p in JS.parent.rglob("*.py"):
+        for node in ast.walk(ast.parse(p.read_text(encoding="utf-8"))):
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr in ("read_text", "write_text")):
+                enc = next((k.value for k in node.keywords if k.arg == "encoding"), None)
+                if not (isinstance(enc, ast.Constant) and str(enc.value).lower().replace("_", "-") == "utf-8"):
+                    bad.append(f"{p.name}:{node.lineno}")
+    assert not bad, bad

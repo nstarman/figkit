@@ -16,7 +16,7 @@ and removes its listeners on dispose. Mount several components on one model to l
 
 Model: reads/writes `camera` (rotate by dragging the background) and `views`
 (`{id: [x, y, z]}`, drag a square). Calls `save_changes()` on pointer-up.
-Pure kernel: `shade(camera, texture, size, out)`.
+Pure kernel: `shade(camera, texture, size, out, base = [255, 255, 255])` — `base` is an `[r, g, b]` array (0–255), e.g. `rgb(cssVar(el, "--fk-bg", "#fff"))`.
 
 ## figkit/skypanel.js — `mount(el, model, opts)` (the general 2-D panel)
 
@@ -52,7 +52,13 @@ Pure helper: `autoscale(xy, pad = 0.55) → {cx, cy, half}` (equal aspect, frame
 ## figkit/figkit.js
 
 Re-exports the above; `run(app, el, {data, base})` hosts an app on a web page; `showError(el, msg)`.
-Styles: `figkit/figkit.css` (`.fk-app`, `.fk-toolbar`, `.fk-grid`, `.fk-panel`, `.fk-plot`, light/dark variables).
+Styles: `figkit/figkit.css` — `.fk-app`, `.fk-toolbar`, `.fk-panel`, `.fk-plot`, `.fk-grid`, and
+the responsive `.fk-split` (side by side, stacked below 760 px) and `.fk-grid-2` (two columns, one
+below 320 px). Their breakpoints are container queries on `.fk-app`, so they follow the app's width
+(a notebook cell, a phone). Light/dark variables (`--fk-bg`, `--fk-fg`, `--fk-muted`, …) follow the
+system theme; canvas code reads them with `cssVar(el, "--fk-fg", fallback)` at draw time, and
+`createStage` redraws when the theme changes. Use layout classes, not inline grid styles, so apps
+work on phones.
 
 ## Adding a component
 

@@ -32,10 +32,10 @@ class Widget(anywidget.AnyWidget):
         entries = ds.manifest["entries"]
         # anywidget turns these attributes into synced traits during __init__
         self._esm = inline_modules(f"app/{app.name}", roots={"figkit/": JS_DIR, "app/": app.parent})
-        self._css = (JS_DIR / "figkit.css").read_text()
+        self._css = (JS_DIR / "figkit.css").read_text(encoding="utf-8")
         super().__init__(
             manifest=ds.manifest,
             arrays={k: (data / e["file"]).read_bytes() for k, e in entries.items() if e["kind"] == "array"},
-            json={k: _json.loads((data / e["file"]).read_text()) for k, e in entries.items() if e["kind"] == "json"},
+            json={k: _json.loads((data / e["file"]).read_text(encoding="utf-8")) for k, e in entries.items() if e["kind"] == "json"},
             **kwargs,
         )

@@ -1,11 +1,18 @@
 // A canvas that fills its element, is sharp on high-DPI screens and is drawn in CSS pixels;
 // redraws are coalesced to one per animation frame. Plus a pointer-drag helper.
 
+/** A canvas's 2-D context, or a clear error if the browser cannot provide one. */
+export function context2d(canvas, options) {
+  const ctx = canvas.getContext("2d", options);
+  if (!ctx) throw new Error("figkit: this browser could not provide a 2-D canvas context");
+  return ctx;
+}
+
 export function createStage(el, { draw, onResize } = {}) {
   const canvas = document.createElement("canvas");
   canvas.style.cssText = "display:block;width:100%;height:100%;touch-action:none";
   el.appendChild(canvas);
-  const stage = { canvas, ctx: canvas.getContext("2d"), width: 0, height: 0, dpr: 1, requestDraw, dispose };
+  const stage = { canvas, ctx: context2d(canvas), width: 0, height: 0, dpr: 1, requestDraw, dispose };
   let pending = false, disposed = false, mq = null;
 
   function requestDraw() {
@@ -31,15 +38,41 @@ export function createStage(el, { draw, onResize } = {}) {
   const ro = new ResizeObserver(resize);
   ro.observe(el);
   watchDpr();
+  const scheme = matchMedia("(prefers-color-scheme: dark)"); // theme colours change with it
+  scheme.addEventListener("change", requestDraw);
   resize();
 
   function dispose() {
     disposed = true;
     ro.disconnect();
     mq?.removeEventListener("change", onDpr);
+    scheme.removeEventListener("change", requestDraw);
     canvas.remove();
   }
   return stage;
+}
+
+/** A CSS custom property's value on `el` (e.g. a theme colour from figkit.css), or `fallback`. */
+export const cssVar = (el, name, fallback) => getComputedStyle(el).getPropertyValue(name).trim() || fallback;
+
+let probe = null; // one 1×1 context, reused: rgb() runs on every globe redraw
+const rgbCache = new Map();
+
+/** Any CSS colour as a frozen [r, g, b] (0–255), resolved by the browser; cached per colour string. */
+export function rgb(color) {
+  let out = rgbCache.get(color);
+  if (out) return out;
+  if (!probe) {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    probe = context2d(canvas, { willReadFrequently: true });
+  }
+  probe.clearRect(0, 0, 1, 1);
+  probe.fillStyle = "#000"; probe.fillStyle = color; probe.fillRect(0, 0, 1, 1);
+  out = Object.freeze(Array.from(probe.getImageData(0, 0, 1, 1).data.subarray(0, 3))); // shared: read-only
+  if (rgbCache.size > 64) rgbCache.clear();
+  rgbCache.set(color, out);
+  return out;
 }
 
 /**

@@ -4,7 +4,7 @@ export { createModel } from "figkit/model.js";
 export { parseNpy, asTyped } from "figkit/npy.js";
 export { loadData, FigkitDataError } from "figkit/data.js";
 export * as geom from "figkit/geom.js";
-export { createStage, dragHelper } from "figkit/stage.js";
+export { createStage, dragHelper, cssVar, rgb, context2d } from "figkit/stage.js";
 export { mount as mountGlobe, shade } from "figkit/globe.js";
 export { mount as mountSkyPanel, autoscale } from "figkit/skypanel.js";
 

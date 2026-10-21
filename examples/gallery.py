@@ -27,6 +27,7 @@ PAGE = """<!doctype html>
 <style>
   body {{ margin: 0; font: 15px/1.5 system-ui, sans-serif; color: #222; background: #fff; }}
   main {{ max-width: 760px; margin: 0 auto; padding: 24px 16px; }}
+  a {{ color: #3b6ea8; }}
   @media (prefers-color-scheme: dark) {{ body {{ color: #e3e6ea; background: #15181d; }} a {{ color: #8ab4e8; }} }}
   .ex {{ border-top: 1px solid #8884; padding: 12px 0; }} .meta {{ color: #888; font-size: 13px; }}
 </style></head>
@@ -41,12 +42,25 @@ ITEM = """<div class="ex"><h2><a href="{slug}/">{title}</a></h2><p>{text}</p>
 <p class="meta">Data: <a href="{url}">{cite}</a> · <a href="{slug}.html">single file</a> (opens offline)</p></div>"""
 
 
+# Added to each example page by the gallery only: the examples stay standalone pages that papers reuse.
+BACK = ('<nav style="max-width:1200px;margin:0 auto;padding:12px 16px 0;font:14px/1.4 system-ui,sans-serif">'
+        '<a href="{href}" style="color:var(--fk-accent,#3b6ea8);text-decoration:none">← figkit gallery</a></nav>')
+
+
+def add_back_link(page: Path, href: str) -> None:
+    html = page.read_text(encoding="utf-8")
+    i = html.index(">", html.index("<body")) + 1
+    page.write_text(html[:i] + "\n" + BACK.format(href=href) + html[i:], encoding="utf-8")
+
+
 def build_example(slug: str, site: Path, data_dir: Path) -> None:
     spec = importlib.util.spec_from_file_location(f"{slug}_export", HERE / slug / "export.py")
     export = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(export)
     dataset = export.main(data_dir)
-    figkit.build(HERE / slug, data=[dataset], out=site / slug, single_file=site / f"{slug}.html")
+    res = figkit.build(HERE / slug, data=[dataset], out=site / slug, single_file=site / f"{slug}.html")
+    add_back_link(res.out / "index.html", "../")
+    add_back_link(res.single_file, "index.html")  # explicit: file:// does not open a folder's index
 
 
 def main(site: Path) -> None:
@@ -55,7 +69,7 @@ def main(site: Path) -> None:
     for slug, *_ in EXAMPLES:
         build_example(slug, site, site.parent / f"{site.name}-data")
     items = "\n".join(ITEM.format(slug=s, title=t, text=x, cite=c, url=u) for s, t, x, c, u in EXAMPLES)
-    (site / "index.html").write_text(PAGE.format(version=figkit.__version__, items=items))
+    (site / "index.html").write_text(PAGE.format(version=figkit.__version__, items=items), encoding="utf-8")
 
 
 if __name__ == "__main__":
