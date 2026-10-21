@@ -1,0 +1,43 @@
+name: gallery
+
+# Builds the examples with the released package and publishes them on GitHub Pages.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - name: Build the globe example (served + single file)
+        run: |
+          uv run python examples/globe/export.py --out build/data
+          uv run figkit build examples/globe --data build/data/globe --out site/globe --single-file site/globe.html
+      - name: Gallery page
+        run: uv run python examples/gallery.py site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

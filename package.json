@@ -1,0 +1,7 @@
+{
+  "name": "figkit",
+  "private": true,
+  "description": "Test-only: lets `node --test` resolve bare figkit/… imports (no dependencies, no build).",
+  "type": "module",
+  "exports": { "./*": "./src/figkit/js/*" }
+}
