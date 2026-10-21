@@ -52,7 +52,13 @@ Pure helper: `autoscale(xy, pad = 0.55) → {cx, cy, half}` (equal aspect, frame
 ## figkit/figkit.js
 
 Re-exports the above; `run(app, el, {data, base})` hosts an app on a web page; `showError(el, msg)`.
-Styles: `figkit/figkit.css` (`.fk-app`, `.fk-toolbar`, `.fk-grid`, `.fk-panel`, `.fk-plot`, light/dark variables).
+Styles: `figkit/figkit.css` — `.fk-app`, `.fk-toolbar`, `.fk-panel`, `.fk-plot`, `.fk-grid`, and
+the responsive `.fk-split` (side by side, stacked below 760 px) and `.fk-grid-2` (two columns, one
+below 320 px). Their breakpoints are container queries on `.fk-app`, so they follow the app's width
+(a notebook cell, a phone). Light/dark variables (`--fk-bg`, `--fk-fg`, `--fk-muted`, …) follow the
+system theme; canvas code reads them with `cssVar(el, "--fk-fg", fallback)` at draw time, and
+`createStage` redraws when the theme changes. Use layout classes, not inline grid styles, so apps
+work on phones.
 
 ## Adding a component
 

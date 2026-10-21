@@ -108,3 +108,37 @@ def test_drag_frame_rate(browser, served, browser_name):
     print(f"rotating at 2x DPR: {fps:.0f} frames/s")
     ctx.close()
     assert fps >= 30
+
+
+# ── layout (narrow screens, dark mode) and the gallery's back link ───────────
+
+def test_phone_layout(browser, served):
+    ctx = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2)
+    page = ctx.new_page()
+    page.goto(served)
+    page.wait_for_selector('[data-panel="nbody"] .fk-readout:has-text("%")')
+    assert page.evaluate("document.documentElement.scrollWidth") <= 390  # no sideways scrolling
+    globe = page.locator("canvas[data-r]").bounding_box()
+    panels = [page.locator(f'[data-panel="{i}"]').bounding_box() for i in PAPER]
+    assert globe["width"] > 300  # the globe uses the full width, not a sliver of it
+    assert all(p["y"] >= globe["y"] + globe["height"] - 1 for p in panels)  # panels stacked below it
+    assert panels[0]["y"] == panels[1]["y"]  # still 2 x 2 at phone width: compact, not one tall column
+    for i in PAPER:  # headers wrap whole words: the readout stays on one line
+        h = page.locator(f'[data-panel="{i}"] .fk-readout').bounding_box()["height"]
+        assert h < 24, (i, h)
+    ctx.close()
+
+
+def test_gallery_back_link(page, tmp_path_factory):
+    import subprocess
+    import sys
+
+    from conftest import ROOT
+
+    site = tmp_path_factory.mktemp("gallery") / "site"
+    subprocess.run([sys.executable, str(ROOT / "examples" / "gallery.py"), str(site)], check=True)
+    page.goto((site / "globe.html").as_uri())
+    page.wait_for_selector('[data-panel="nbody"] .fk-readout:has-text("%")')
+    page.get_by_role("link", name="← figkit gallery").click()
+    page.wait_for_url("**/index.html")
+    assert page.locator("h1").inner_text() == "figkit gallery"

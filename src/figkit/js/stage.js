@@ -31,15 +31,28 @@ export function createStage(el, { draw, onResize } = {}) {
   const ro = new ResizeObserver(resize);
   ro.observe(el);
   watchDpr();
+  const scheme = matchMedia("(prefers-color-scheme: dark)"); // theme colours change with it
+  scheme.addEventListener("change", requestDraw);
   resize();
 
   function dispose() {
     disposed = true;
     ro.disconnect();
     mq?.removeEventListener("change", onDpr);
+    scheme.removeEventListener("change", requestDraw);
     canvas.remove();
   }
   return stage;
+}
+
+/** A CSS custom property's value on `el` (e.g. a theme colour from figkit.css), or `fallback`. */
+export const cssVar = (el, name, fallback) => getComputedStyle(el).getPropertyValue(name).trim() || fallback;
+
+/** Any CSS colour as [r, g, b] (0–255), resolved by the browser. */
+export function rgb(color) {
+  const c = document.createElement("canvas").getContext("2d");
+  c.fillStyle = "#000"; c.fillStyle = color; c.fillRect(0, 0, 1, 1);
+  return Array.from(c.getImageData(0, 0, 1, 1).data.subarray(0, 3));
 }
 
 /**
