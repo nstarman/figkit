@@ -18,11 +18,20 @@ update an app. This skill applies those notes; it never guesses.
 - **Target**: what the user asked for; otherwise the latest release
   (`gh release list -R nstarman/figkit --limit 1`).
 
-If the versions are equal, report that and stop.
+If the versions are equal, report that and stop. If the sources disagree (e.g. a stale build next
+to a newer pin), the **pin** is what the code runs against: upgrade from the pinned version and
+rebuild everything.
+
+**Record a baseline before changing anything**: run the app's tests
+(`uv run figkit test webapps/<name>`, if it has `*.test.js`) and record what the built page shows
+(the panel readouts — see [references/check-page.md](references/check-page.md) for a headless
+recipe). These are the numbers that must be unchanged afterwards.
 
 ## 2. Read the migration notes
 
-Install the target version, then read its changelog, which includes every earlier release:
+Change the pin to the target tag (keep its form: `git+https://…@vX`, `git+file://…@vX`, …) and
+install it; check that the resolver reports the intended tag and commit. Then read the installed
+changelog, which includes every earlier release:
 
 ```bash
 uv add "figkit @ git+https://github.com/nstarman/figkit@vTARGET"   # or edit the pin and `uv sync`
@@ -40,10 +49,12 @@ the gap to the user; do not improvise an edit.
 
 For each note:
 
-1. Run its **Find** (e.g. `grep -rn "compute:" webapps/`) over the app code: `webapps/*/`
-   (`index.html`, `*.js`) and the export scripts.
-2. Make the **Edit** at every hit, exactly as written. Change nothing else.
-3. Re-run **Find** to confirm no hits remain.
+1. Run its **Find** as written (e.g. `grep -rn "compute:" webapps/`); the note's scope wins. Also
+   search the obvious syntax variants the pattern may miss (shorthand `{ compute }`,
+   `compute :`, `opts.compute =`).
+2. Read each hit in context and make the **Edit** only where it matches what the note describes
+   (e.g. a skypanel options object, not an unrelated `compute:` key). Change nothing else.
+3. Re-run **Find** and confirm that no relevant hits remain.
 
 ## 4. Rebuild and check
 
@@ -52,12 +63,16 @@ For each webapp:
 ```bash
 uv run python webapps/<name>/export.py --out build/data          # re-export: the manifest records the version
 uv run figkit build webapps/<name> --data build/data/<dataset> --out build/site/<name> --single-file build/<name>.html
-node --test 'webapps/<name>/*.test.js'                             # the app's science tests, if any
+uv run figkit test webapps/<name>                                 # the app's science tests, if any
 ```
 
 The build must succeed (it rejects relative imports, `import.meta.url` and datasets of another
-data-format version). Open the served build (`uv run figkit serve build/site`) and check that the
-numbers the app reproduces from the paper are unchanged.
+data-format version). Then compare with the baseline: the tests pass and the page's readouts are
+unchanged ([references/check-page.md](references/check-page.md)).
+
+Build output normally lives in an ignored `build/`. If the repository tracks built output, the
+rebuild replaces `vendor/figkit-<old>/` with `vendor/figkit-<new>/`: commit that together with the
+source edits and say so in the report.
 
 ## 5. Report
 

@@ -108,3 +108,16 @@ def test_single_file(tmp_path):
     assert "importmap" not in html and '"figkit/' not in html and '"app/' not in html
     assert "globalThis.FIGKIT_DATA" in html and "--fk-bg" in html  # data and figkit.css inlined
     assert res.warnings and "MB" in res.warnings[0]
+
+
+def test_figkit_test_command(tmp_path):
+    app = make_app(tmp_path)
+    (app / "widget.test.js").unlink()  # placeholder text, not a test
+    (app / "science.js").write_text('import { dot } from "figkit/geom.js";\nexport const f = () => dot([1, 2, 3], [1, 1, 1]);\n')
+    (app / "science.test.js").write_text(
+        'import { test } from "node:test";\nimport assert from "node:assert/strict";\n'
+        'import { f } from "app/science.js";\ntest("f", () => assert.equal(f(), 6));\n')
+    run = lambda: subprocess.run([sys.executable, "-m", "figkit.cli", "test", str(app)], capture_output=True, text=True)  # noqa: E731
+    assert run().returncode == 0
+    (app / "science.test.js").write_text((app / "science.test.js").read_text().replace("6)", "7)"))
+    assert run().returncode != 0
