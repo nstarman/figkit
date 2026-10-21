@@ -45,7 +45,7 @@ CHANGELOG.md           every release; migration notes for breaking changes (ship
 
 ```bash
 uv run pytest                                                  # not the smoke tests
-uv run python tests/make_fixtures.py && node --test 'js-tests/*.test.js'
+uv run python tests/make_fixtures.py && node --test js-tests/*.test.js
 uv run pytest -m smoke --browser chromium --browser webkit     # Firefox runs in CI
 ```
 

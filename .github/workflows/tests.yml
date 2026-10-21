@@ -37,7 +37,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: uv sync
       - run: uv run python tests/make_fixtures.py
-      - run: node --test 'js-tests/*.test.js'
+      - run: node --test js-tests/*.test.js
 
   smoke:
     runs-on: ubuntu-latest

@@ -1,6 +1,6 @@
 """Write fixtures for the JS tests (js-tests/fixtures/), using numpy and figkit.export.
 
-Run before `node --test 'js-tests/*.test.js'`:  uv run python tests/make_fixtures.py
+Run before `node --test js-tests/*.test.js`:  uv run python tests/make_fixtures.py
 """
 
 import json

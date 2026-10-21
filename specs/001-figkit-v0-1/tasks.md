@@ -41,7 +41,7 @@ testable increment.
 
 - [X] T001 Create `pyproject.toml`: project `figkit`, `requires-python = ">=3.11"`, dependency `numpy>=1.24`, optional extra `notebook = ["anywidget>=0.11,<0.12"]`, dev group `pytest`, `pytest-playwright>=0.10`, hatchling build backend with `[tool.hatch.version] path = "src/figkit/__init__.py"`, package data `src/figkit/js/**`, console script `figkit = "figkit.cli:main"`
 - [X] T002 Create the package skeleton per plan.md: `src/figkit/__init__.py` (with `__version__ = "0.1.0.dev0"`, re-exports to be filled later), empty modules `src/figkit/{data,build,serve,cli,anywidget}.py`, folders `src/figkit/js/`, `examples/globe/`, `skills/figkit/references/`, `skills/figkit/assets/template/`, `skills/figkit-upgrade/`, `tests/`, `js-tests/fixtures/`
-- [X] T003 [P] Add `.github/workflows/tests.yml`: on push/PR, jobs (a) `uv run pytest -m "not smoke"` on Python 3.11 and 3.13, (b) `uv run python tests/make_fixtures.py && node --test 'js-tests/*.test.js'` on Node 20 and 22, (c) smoke matrix `uv run pytest -m smoke --browser {chromium,firefox,webkit}` on ubuntu-latest after `uv run playwright install --with-deps`
+- [X] T003 [P] Add `.github/workflows/tests.yml`: on push/PR, jobs (a) `uv run pytest -m "not smoke"` on Python 3.11 and 3.13, (b) `uv run python tests/make_fixtures.py && node --test js-tests/*.test.js` on Node 20 and 22, (c) smoke matrix `uv run pytest -m smoke --browser {chromium,firefox,webkit}` on ubuntu-latest after `uv run playwright install --with-deps`
 - [X] T004 [P] Create `CHANGELOG.md` with the release format from data-model.md (Release entity): sections `## X.Y.Z — YYYY-MM-DD` with Added/Changed/Fixed, and a "Migration notes" subsection template with **What changed**, **Find** (grep pattern), **Edit** (exact change); add an `## Unreleased` section
 - [X] T005 [P] Register the pytest marker `smoke` and test paths in `pyproject.toml` (`[tool.pytest.ini_options]`)
 
@@ -71,7 +71,7 @@ testable increment.
 - [X] T016 Implement `src/figkit/js/data.js` (`loadData` from a name, a `data:`-URL map, or a model with `manifest` + `npy_<entry>` traits; `FigkitDataError`); depends on T013; make T011 pass
 - [X] T017 Implement `src/figkit/js/figkit.js`: re-export the public API of model/npy/data/geom (stage/globe/skypanel added in US1), `showError(el, message)` using `textContent` in a `.fk-error` box, and `run(app, el, {data, base})` — creates a model, awaits a factory default export, `initialize` and `render({model, el, signal})`, returns a dispose that aborts the signal
 
-**Checkpoint**: `uv run pytest tests/test_data.py` and `node --test 'js-tests/*.test.js'` pass
+**Checkpoint**: `uv run pytest tests/test_data.py` and `node --test js-tests/*.test.js` pass
 
 ---
 

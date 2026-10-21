@@ -49,7 +49,7 @@ DOM-free `science.js`. See [`examples/globe/`](examples/globe/) and the agent sk
 ```bash
 uv sync --all-extras
 uv run pytest                                   # Python
-uv run python tests/make_fixtures.py && node --test 'js-tests/*.test.js'   # JS
+uv run python tests/make_fixtures.py && node --test js-tests/*.test.js   # JS
 uv run playwright install chromium webkit && uv run pytest -m smoke --browser chromium --browser webkit
 ```
 

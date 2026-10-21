@@ -11,7 +11,7 @@ Runnable scenarios that prove the feature end to end. API details: [contracts/](
 
 ```bash
 uv run pytest
-node --test 'js-tests/*.test.js'
+node --test js-tests/*.test.js
 ```
 
 Expected: all pass, including `js-tests/globe-acceptance.test.js` printing
