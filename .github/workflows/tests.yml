@@ -7,6 +7,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   python:
     runs-on: ubuntu-latest
@@ -51,3 +54,80 @@ jobs:
       - run: uv sync
       - run: uv run playwright install --with-deps ${{ matrix.browser }}
       - run: uv run pytest -m smoke --browser ${{ matrix.browser }}
+
+  # A live preview of the gallery for every pull request, so a change to figkit can be looked at,
+  # not imagined. GitHub Pages serves one deployment (the released gallery), so previews go to
+  # Cloudflare Pages, as for the website. Setup, once:
+  #
+  #   1. Cloudflare -> My Profile -> API Tokens -> Create Custom Token, with one permission:
+  #      Account / Cloudflare Pages / Edit. (The website's token works too.)
+  #   2. This repo -> Settings -> Secrets and variables -> Actions:
+  #        CLOUDFLARE_API_TOKEN    the token from step 1
+  #        CLOUDFLARE_ACCOUNT_ID   the ID in the Cloudflare dashboard's right-hand sidebar
+  #
+  # The Pages project ("figkit") is created by the job if missing. Until the secrets exist, and for
+  # pull requests from forks (which cannot read secrets), the job passes without deploying.
+  preview:
+    if: github.event_name == 'pull_request'
+    needs: [python, js, smoke]  # only a tested build gets a URL
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+    steps:
+      - id: guard
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "$ACCOUNT" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare secrets are not set — see the comments in tests.yml." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - if: steps.guard.outputs.ready == 'true'
+        uses: actions/checkout@v4
+      - if: steps.guard.outputs.ready == 'true'
+        uses: astral-sh/setup-uv@v6
+      - if: steps.guard.outputs.ready == 'true'
+        name: Build the gallery
+        run: uv sync && uv run python examples/gallery.py site
+      - if: steps.guard.outputs.ready == 'true'
+        name: Ensure the Pages project exists
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages project create figkit --production-branch=main
+        continue-on-error: true  # "already exists" is the normal case
+      - if: steps.guard.outputs.ready == 'true'
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy site --project-name=figkit --branch=pr-${{ github.event.number }}
+      - if: steps.guard.outputs.ready == 'true'
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: preview
+          message: |
+            **Preview:** ${{ steps.deploy.outputs.deployment-alias-url || format('https://pr-{0}.figkit.pages.dev', github.event.number) }}
+
+            The gallery with this branch's figkit; the link always shows the latest push.
+            This build (`${{ github.event.pull_request.head.sha }}`): ${{ steps.deploy.outputs.deployment-url }}
+
+  # The one check to require in branch protection: green only when every job above is (preview is
+  # skipped outside pull requests). A job added later is covered without touching the settings.
+  status:
+    name: CI Pass
+    if: ${{ !cancelled() }}
+    needs: [python, js, smoke, preview]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: re-actors/alls-green@v1.3.0
+        with:
+          jobs: ${{ toJSON(needs) }}
+          allowed-skips: preview
