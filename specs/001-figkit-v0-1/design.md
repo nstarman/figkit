@@ -138,8 +138,9 @@ A paper repository holds `webapps/<name>/` (index.html, widget.js, science.js, e
 - `figkit build webapps/globe --data <dataset dir> --out site/globe [--single-file site/globe.html]`
   - served: copy app files; vendor installed figkit JS into `vendor/figkit-X.Y.Z/`; write the
     import map (`figkit/` → vendor path, `app/` → app files); copy data; stamp the version.
-  - single file: `inline_modules()` rewrites each module into a `data:text/javascript;base64` URL
-    in the import map (dependencies first; requires string-literal imports and no cycles), turns
+  - single file: `inline_modules()` rewrites each module's bare imports into nested
+    `data:text/javascript;base64` URLs (dependencies first; requires string-literal imports and no
+    cycles), so no import map is needed — verified in research.md R1; it also turns
     data files into data URLs so `loadData` keeps one fetch path, boots from one inline module
     script, warns above 50 MB.
   - checks: reject relative imports / `import.meta.url`; reject incompatible `figkit_data` majors.
