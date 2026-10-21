@@ -140,14 +140,14 @@ testable increment.
 
 ### Tests for User Story 3 (write first, must fail)
 
-- [ ] T042 [P] [US3] Write `tests/test_anywidget.py` (skipped when `anywidget` is missing): `Widget(app=…, data=…)` has `_esm` with no bare specifiers, a `manifest` Dict trait, one `npy_<entry>` Bytes trait per array whose bytes equal the `.npy` file, and synced `camera` (9 floats) and `views` (dict) traits
-- [ ] T043 [P] [US3] Extend `js-tests/data.test.js`: `loadData(model)` with a fake model holding `manifest` and `npy_<entry>` values as `DataView`s returns the same arrays as the file path (via `asTyped`)
+- [X] T042 [P] [US3] Write `tests/test_anywidget.py` (skipped when `anywidget` is missing): `Widget(app=…, data=…)` has `_esm` with no bare specifiers, a `manifest` Dict trait, one `npy_<entry>` Bytes trait per array whose bytes equal the `.npy` file, and synced `camera` (9 floats) and `views` (dict) traits
+- [X] T043 [P] [US3] Extend `js-tests/data.test.js`: `loadData(model)` with a fake model holding `manifest` and `npy_<entry>` values as `DataView`s returns the same arrays as the file path (via `asTyped`)
 
 ### Implementation for User Story 3
 
-- [ ] T044 [US3] Implement `src/figkit/anywidget.py` (`Widget(app, data)`: `_esm = inline_modules(app, roots=…)`, `manifest` and `npy_<entry>` traits, `camera`/`views` synced) per contracts/python-api.md and research R2; make T042 pass
-- [ ] T045 [US3] Extend `src/figkit/js/data.js` for the model source (read `manifest`, convert `npy_<entry>` `DataView`s with `asTyped`); make T043 pass
-- [ ] T046 [US3] Run quickstart.md step 6 in JupyterLab (`uv run --extra notebook --with jupyterlab jupyter lab`): render, drag the Orbit 1 marker, read `w.views["orbit1"]`; also confirm it renders in marimo; record results in `specs/001-figkit-v0-1/quickstart.md` notes
+- [X] T044 [US3] Implement `src/figkit/anywidget.py` (`Widget(app, data)`: `_esm = inline_modules(app, roots=…)`, `manifest` and `npy_<entry>` traits, `camera`/`views` synced) per contracts/python-api.md and research R2; make T042 pass
+- [X] T045 [US3] Extend `src/figkit/js/data.js` for the model source (read `manifest`, convert `npy_<entry>` `DataView`s with `asTyped`); make T043 pass
+- [X] T046 [US3] Run quickstart.md step 6 in JupyterLab (`uv run --extra notebook --with jupyterlab jupyter lab`): render, drag the Orbit 1 marker, read `w.views["orbit1"]`; also confirm it renders in marimo; record results in `specs/001-figkit-v0-1/quickstart.md` notes
 
 **Checkpoint**: Stories 1–3 work independently
 

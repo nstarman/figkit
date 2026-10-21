@@ -26,7 +26,6 @@ export function showError(el, message, error) {
  */
 export async function run(app, el, { data, base = "data/", model = createModel() } = {}) {
   const controller = new AbortController();
-  el.figkitModel = model; // for debugging and tests
   model.set("data_source", data ?? null);
   model.set("data_base", base);
   try {

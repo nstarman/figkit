@@ -169,6 +169,7 @@ export function mount(el, model, { texture, lines = {}, points = {}, colors = {}
     },
   });
 
+  stage.canvas.figkitModel = model; // for debugging and tests, with data-cx/cy/r
   const redraw = () => stage.requestDraw();
   model.on("change:camera", redraw);
   model.on("change:views", redraw);

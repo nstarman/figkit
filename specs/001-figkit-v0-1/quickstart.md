@@ -55,7 +55,7 @@ Expected: exit code 1 and an error naming the file and line.
 ## 6. Notebook (Story 3, FR-016)
 
 ```bash
-uv run --extra notebook jupyter lab
+uv run --extra notebook --with jupyterlab --with 'anywidget>=0.11,<0.12' --with ipywidgets jupyter lab
 ```
 
 ```python
@@ -83,3 +83,9 @@ Expected: pass for served and `file://` outputs; the drag test reports ≥ 30 fp
   cannot start on the development Mac; research R1).
 - Step 4 by hand with Wi-Fi off: replaced by the automated single-file smoke test above, which
   blocks all network access; a manual check in desktop Chrome/Safari is left to the author.
+- Step 6 (notebook), automated with Playwright: in JupyterLab the widget renders with the four
+  paper fractions; dragging the Orbit 1 marker updates its panel and Python's `w.views["orbit1"]`
+  changes (via a `w.observe` callback). In `marimo run`, `mo.ui.anywidget(Widget(...))` renders with
+  the same fractions. Gotcha: JupyterLab must see anywidget's lab extension; with
+  `uv run --with jupyterlab`, also pass `--with anywidget --with ipywidgets`, otherwise the
+  browser console shows "Exception opening new comm".

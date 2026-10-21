@@ -71,7 +71,8 @@ mount(el, model, {
   markerSizeDeg = 5.5,
 }) → dispose
 // reads: camera, views; writes: camera (on rotate), views (on marker drag); save_changes on pointerup
-export function shade(camera, texture, size, out) // pure kernel, tested in node
+export function shade(camera, texture, size, out, step = 1) // pure kernel, tested in node
+// debugging/test hook: the globe canvas carries data-cx, data-cy, data-r (CSS px) and .figkitModel
 ```
 
 ## figkit/skypanel.js
@@ -92,8 +93,7 @@ export function autoscale(xy, pad = 0.55) → { cx, cy, half }   // pure, tested
 
 ```js
 export * from the modules above;
-run(app, el, { data, base, model }) → Promise<dispose>  // standalone host: creates a model (also
-                                                  // el.figkitModel, for debugging), sets data_source /
+run(app, el, { data, base, model }) → Promise<dispose>  // standalone host: creates a model, sets data_source /
                                                   // data_base, awaits initialize/render with an AbortSignal
 showError(el, message)                            // plain on-page error box (textContent)
 ```

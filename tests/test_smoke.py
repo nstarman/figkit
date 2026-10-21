@@ -14,8 +14,7 @@ def readouts(page):
 def marker_xy(page, sid):
     # orthographic projection of the marker's camera-facing end (as figkit/geom.js project/facing)
     return page.evaluate("""(sid) => {
-      const el = document.querySelector("[data-figkit-app]"), m = el.figkitModel;
-      const cv = el.querySelector("canvas[data-r]"), box = cv.getBoundingClientRect();
+      const cv = document.querySelector("canvas[data-r]"), m = cv.figkitModel, box = cv.getBoundingClientRect();
       const C = m.get("camera"), w = m.get("views")[sid];
       const d = (i) => C[3 * i] * w[0] + C[3 * i + 1] * w[1] + C[3 * i + 2] * w[2];
       const s = d(2) >= 0 ? 1 : -1;
@@ -36,9 +35,9 @@ def check_page(page, url):
     cv = page.locator("canvas[data-r]")
     box = cv.bounding_box()
     x0, y0 = box["x"] + box["width"] * 0.8, box["y"] + box["height"] * 0.25
-    cam0 = page.evaluate("document.querySelector('[data-figkit-app]').figkitModel.get('camera')")
+    cam0 = page.evaluate("document.querySelector('canvas[data-r]').figkitModel.get('camera')")
     page.mouse.move(x0, y0); page.mouse.down(); page.mouse.move(x0 + 60, y0 - 5, steps=6); page.mouse.up()
-    cam1 = page.evaluate("document.querySelector('[data-figkit-app]').figkitModel.get('camera')")
+    cam1 = page.evaluate("document.querySelector('canvas[data-r]').figkitModel.get('camera')")
     assert cam1 != cam0
     rows = [cam1[0:3], cam1[3:6], cam1[6:9]]
     for a in range(3):

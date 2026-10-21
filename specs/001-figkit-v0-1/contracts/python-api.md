@@ -76,9 +76,9 @@ w.camera     # list[float], 9 values, synced
 w.views      # dict[str, list[float]], synced
 ```
 
-`_esm` = `inline_modules(app, roots=…)`; arrays → `traitlets.Bytes` traits named `npy_<entry>`;
-the manifest → a `Dict` trait `manifest`. The app reads them through `figkit/data.js`
-(`loadData` accepts a model as its source).
+`_esm` = `inline_modules(app, roots=…)`, `_css` = figkit.css; synced traits `manifest` (Dict),
+`arrays` (Dict: entry → the `.npy` file's bytes, delivered to JS as `DataView`s), `json` (Dict),
+`camera`, `views`. The app reads the data through `figkit/data.js` (`loadData(model)`).
 
 ## figkit.serve
 

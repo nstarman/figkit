@@ -1,7 +1,7 @@
 // Load a figkit dataset (manifest.json + .npy files) into typed arrays — the same result from a
 // served folder, from the data: URLs of a single-file build, or from a notebook model.
 
-import { parseNpy, asTyped } from "figkit/npy.js";
+import { parseNpy } from "figkit/npy.js";
 
 export const FORMAT = 1; // figkit_data major this library reads
 
@@ -20,7 +20,7 @@ const result = (m) => ({ name: m.name, meta: m.meta ?? {}, arrays: {}, json: {} 
 
 /**
  * source: a dataset name (fetched from `${base}${name}/`), {name, urls: {file: url}} from a
- * single-file build, or a model holding `manifest` and `npy_<entry>` / `json_<entry>` values.
+ * single-file build, or a notebook model holding `manifest`, `arrays` (entry → .npy bytes) and `json`.
  */
 export async function loadData(source, { fetch = globalThis.fetch, base = "data/" } = {}) {
   if (source && typeof source.get === "function") return fromModel(source);
@@ -50,14 +50,15 @@ function fromModel(model) {
   const manifest = model.get("manifest");
   if (!manifest) throw new FigkitDataError("the widget has no dataset (manifest is missing)");
   check(manifest, "widget manifest");
-  const out = result(manifest);
+  const out = result(manifest), arrays = model.get("arrays") ?? {}, json = model.get("json") ?? {};
   for (const [key, e] of Object.entries(manifest.entries)) {
-    if (e.kind === "json") { out.json[key] = model.get(`json_${key}`); continue; }
-    const raw = model.get(`npy_${key}`);
+    if (e.kind === "json") { out.json[key] = json[key]; continue; }
+    const raw = arrays[key];
     if (!raw) throw new FigkitDataError(`the widget is missing array ${key}`);
-    const view = raw instanceof DataView ? raw : new DataView(raw.buffer ?? raw);
-    const parsed = parseNpy(asTyped(view, "|u1").slice().buffer);
-    out.arrays[key] = parsed;
+    // notebooks deliver DataViews, possibly unaligned: copy the bytes once, then view them
+    const bytes = raw instanceof DataView ? new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength)
+      : new Uint8Array(raw.buffer ?? raw);
+    out.arrays[key] = parseNpy(bytes.slice().buffer);
   }
   return out;
 }

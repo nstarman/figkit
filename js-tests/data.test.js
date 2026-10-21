@@ -31,3 +31,20 @@ test("errors name the missing file and version mismatch", async () => {
   await assert.rejects(loadData("ds", { fetch: fetch2, base: "fixtures/" }),
     (e) => e instanceof FigkitDataError && /figkit_data 2/.test(e.message) && /1/.test(e.message));
 });
+
+test("loads from a notebook model (DataView buffers)", async () => {
+  const { createModel } = await import("figkit/model.js");
+  const manifest = JSON.parse(new TextDecoder().decode(read("ds/manifest.json")));
+  const arrays = {}, json = { style: JSON.parse(new TextDecoder().decode(read("ds/style.json"))) };
+  for (const [k, e] of Object.entries(manifest.entries)) {
+    if (e.kind !== "array") continue;
+    const raw = new Uint8Array(read(`ds/${e.file}`)), shifted = new Uint8Array(raw.length + 1);
+    shifted.set(raw, 1); // deliberately unaligned, as message buffers can be
+    arrays[k] = new DataView(shifted.buffer, 1, raw.length);
+  }
+  const d = await loadData(createModel({ manifest, arrays, json }));
+  const byName = await loadData("ds", { fetch: fixtureFetch, base: "fixtures/" });
+  assert.deepEqual(Array.from(d.arrays.track.data), Array.from(byName.arrays.track.data));
+  assert.deepEqual(d.arrays.track.shape, [5, 3]);
+  assert.deepEqual(d.json.style, { color: "#123456" });
+});
