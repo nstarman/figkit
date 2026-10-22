@@ -1,5 +1,8 @@
 # Changelog
 
+Releases are dated: `YYYY.MM.DD`, and `YYYY.MM.DD.N` for a bug-fix release of it (0.1.0 and 0.2.0
+predate this). The version does not say whether a release breaks things; the migration notes do.
+
 Every release has a section. Every breaking change has a migration note with three parts, so the
 `figkit-upgrade` skill can apply it:
 
@@ -10,6 +13,12 @@ Every release has a section. Every breaking change has a migration note with thr
 A release with a breaking change that has no migration note is not tagged.
 
 ## Unreleased
+
+### Changed
+
+- Versioning: releases are dated (`vYYYY.MM.DD`, bug fixes `vYYYY.MM.DD.N`), and every bug fix is
+  backported to every released version that has it (constitution 2.0.0, AGENTS.md "Releasing").
+  No code changes; pins to `v0.1.0`/`v0.2.0` keep working, and the next release sorts after them.
 
 ## 0.2.0 — 2026-10-21
 

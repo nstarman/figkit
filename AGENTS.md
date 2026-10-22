@@ -51,29 +51,40 @@ uv run pytest -m smoke --browser chromium --browser webkit     # Firefox runs in
 
 ## Releasing
 
-Releases follow the `versions/vX.Y.x` model (as in phasecurvefit and unxt), so a paper pinned to
-`vX.Y.Z` can get bug fixes without the next minor version's breaking changes.
+Versions are dates. A release is tagged `vYYYY.MM.DD` (`__version__ = "YYYY.MM.DD"`); a bug-fix
+release of it is `vYYYY.MM.DD.N`. Papers pin an exact release, so every bug fix is backported to
+every released version that has the bug, and each gets its own `.N` — a pinned paper can take a fix
+without anything newer. (`v0.1.0` and `v0.2.0`, with branches `versions/v0.1.x` and
+`versions/v0.2.x`, predate dates; a fix for them is `0.1.N` / `0.2.N` on those branches.)
 
-**A minor (or major) release, `vX.Y.0`, from `main`:**
+**A release, `vYYYY.MM.DD`, from `main`:**
 
-1. In a pull request: set `__version__` in `src/figkit/__init__.py`, and add the
-   `## X.Y.0 — YYYY-MM-DD` section to `CHANGELOG.md`. Every breaking change needs a migration note
+1. In a pull request: set `__version__` to the date, and turn `## Unreleased` in `CHANGELOG.md`
+   into `## YYYY.MM.DD — YYYY-MM-DD`. Every breaking change needs a migration note
    (**What changed**, **Find**, **Edit**); public-API changes update both skills.
-2. Squash-merge it (the only method `main` allows), then tag the merge commit and branch from it:
-   ```bash
-   git tag -a vX.Y.0 <sha> -m "figkit X.Y.0" && git push origin vX.Y.0
-   git branch versions/vX.Y.x vX.Y.0 && git push origin versions/vX.Y.x
-   ```
-3. `gh release create vX.Y.0 --verify-tag` with the changelog section as notes; `gallery.yml`
+2. Squash-merge it (the only method `main` allows), then tag the merge commit:
+   `git tag -a vYYYY.MM.DD <sha> -m "figkit YYYY.MM.DD" && git push origin vYYYY.MM.DD`.
+   No branch yet: `versions/vYYYY.MM.DD.x` is created the first time a fix needs it.
+3. `gh release create vYYYY.MM.DD --verify-tag` with the changelog section as notes; `gallery.yml`
    deploys the examples to Pages. CI checks that the tag equals `v` + `__version__`.
 
-**A bug-fix release, `vX.Y.Z` (Z > 0), from `versions/vX.Y.x`:**
+**A bug fix, backported everywhere it applies:**
 
-1. Fix on `main` first (pull request), unless the bug no longer exists there.
-2. Backport: a pull request into `versions/vX.Y.x` cherry-picking the fix, bumping `__version__` to
-   `X.Y.Z` and adding a `## X.Y.Z` changelog section (on `main` too, so its changelog stays complete).
-   Bug-fix releases never contain breaking changes.
-3. Tag the merged commit on `versions/vX.Y.x` as `vX.Y.Z`, push, and create the release.
+1. Fix it on `main` first (pull request with a test that fails before the fix), and add the fix
+   under `## Unreleased` → **Fixed**.
+2. List the released versions that have the bug: every `v*` tag whose code contains it (check with
+   the new test, or by reading the code at the tag).
+3. For each, oldest to newest: create `versions/<tag>.x` from the tag if it doesn't exist
+   (`git branch versions/<tag>.x <tag> && git push origin versions/<tag>.x`), open a pull request
+   into it that cherry-picks the fix (`git cherry-pick -x <sha>`), sets `__version__` to the next
+   `.N` (or `0.Y.N` on the old semver branches) and adds a `## <version> — <date>` changelog section
+   with only that fix. Merge after CI passes, tag `v<version>` on the merged commit, push, and
+   `gh release create`.
+4. Record the bug-fix releases in `main`'s `CHANGELOG.md` too, so its history is complete.
+
+Bug-fix releases never contain breaking changes or new features. A fix that cannot apply cleanly to an
+old version is adapted in that version's pull request, or skipped there with the reason in the
+pull request and the changelog.
 
 ## Pull-request previews
 

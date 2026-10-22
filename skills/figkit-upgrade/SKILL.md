@@ -5,7 +5,9 @@ description: Upgrade a figkit webapp (or a paper repository's webapps) to a newe
 
 # Upgrading a figkit webapp
 
-figkit webapps are pinned to one figkit version (a git tag of `nstarman/figkit`). Every built page
+figkit webapps are pinned to one figkit version (a git tag of `nstarman/figkit`). Versions are
+dates, `vYYYY.MM.DD`, with bug-fix releases `vYYYY.MM.DD.N` (older: `v0.1.0`, `v0.2.0`); a bug-fix
+release of the pinned version never needs migration notes. Every built page
 records it, and every breaking change in figkit ships a **migration note** saying exactly how to
 update an app. This skill applies those notes; it never guesses.
 
@@ -13,7 +15,7 @@ update an app. This skill applies those notes; it never guesses.
 
 - **Built against**: the page's `<meta name="figkit-version" content="X.Y.Z">` (in a built
   `index.html` or single-file page), or `"figkit"` in a dataset's `data/<name>/manifest.json`.
-- **Pinned**: the `figkit @ git+https://github.com/nstarman/figkit@vX.Y.Z` line in the repo's
+- **Pinned**: the `figkit @ git+https://github.com/nstarman/figkit@vYYYY.MM.DD` line in the repo's
   `pyproject.toml` (or `environment.yml` / requirements file).
 - **Target**: what the user asked for; otherwise the latest release
   (`gh release list -R nstarman/figkit --limit 1`).

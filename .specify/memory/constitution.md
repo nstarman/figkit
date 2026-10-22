@@ -91,7 +91,12 @@ expected to keep working for a decade or more.
 
 ## Releases and Upgrades
 
-- Versions are semver git tags `vX.Y.Z`. While at 0.x, a minor bump MAY break compatibility.
+- Versions are dates: a release is tagged `vYYYY.MM.DD` (Python version `YYYY.MM.DD`); a bug-fix
+  release of it is `vYYYY.MM.DD.N` (N = 1, 2, …). The version number does not signal breaking
+  changes; migration notes do. Tags `v0.1.0` and `v0.2.0` predate this and stay as they are.
+- Every bug fix MUST be backported as far as it applies: to every released version that has the bug,
+  each on its `versions/<tag>.x` branch (created from the release tag when first needed) and released
+  as that version's next `.N`. Bug-fix releases MUST NOT contain breaking changes or new features.
 - Every release MUST have a `CHANGELOG.md` section. Every breaking change MUST have a migration
   note giving what changed, how to find affected code (e.g. a grep pattern) and the exact edit.
   A release with an undocumented break MUST NOT be tagged.
@@ -110,4 +115,4 @@ expected to keep working for a decade or more.
 - Reviews MUST check new code against Principles I–VII, especially the import and data rules,
   which `figkit build` and CI enforce mechanically where possible.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-21 | **Last Amended**: 2026-10-21
+**Version**: 2.0.0 | **Ratified**: 2026-10-21 | **Last Amended**: 2026-10-22
