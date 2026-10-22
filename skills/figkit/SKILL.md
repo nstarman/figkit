@@ -15,8 +15,8 @@ enforced by `figkit build`.
 In the paper repository (Python ≥ 3.11):
 
 ```bash
-uv add "figkit @ git+https://github.com/nstarman/figkit@vX.Y.Z"   # pin a release tag
-uv add --dev "figkit[notebook] @ git+https://github.com/nstarman/figkit@vX.Y.Z"   # optional, notebooks
+uv add "figkit @ git+https://github.com/nstarman/figkit@vYYYY.MM.DD"   # pin a release tag
+uv add --dev "figkit[notebook] @ git+https://github.com/nstarman/figkit@vYYYY.MM.DD"   # optional, notebooks
 ```
 
 ## 1. Scaffold
