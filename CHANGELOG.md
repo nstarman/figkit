@@ -11,6 +11,10 @@ A release with a breaking change that has no migration note is not tagged.
 
 ## Unreleased
 
+## 0.2.0 — 2026-10-21
+
+No breaking changes: no migration needed from 0.1.
+
 ### Added
 
 - Responsive layout classes in `figkit.css`, driven by container queries (the app's own width,
@@ -24,9 +28,17 @@ A release with a breaking change that has no migration note is not tagged.
 
 - Dark mode: the globe's disc, axes and labels and the panels' origin mark follow the theme
   instead of staying white or near-black; canvases redraw when the system theme changes.
-- Panel headers wrap whole words (title, then readout) on narrow screens.
+- Panel headers wrap on narrow screens: titles may wrap, readouts stay on one line.
 - The globe example stacks the globe above its panels on phones.
 - Gallery: each example page links back to the gallery (served and single file).
+- All text files are read and written as UTF-8 (`figkit build`, `export`, the notebook widget):
+  non-ASCII characters in figkit's JS, CSS and generated READMEs broke on non-UTF-8 locales
+  (e.g. Windows cp1252). A test guards it.
+
+### Development
+
+- Pull requests get a live gallery preview on Cloudflare Pages and a single **CI Pass** gate.
+- The `versions/vX.Y.x` release process (AGENTS.md).
 
 ## 0.1.0 — 2026-10-21
 
