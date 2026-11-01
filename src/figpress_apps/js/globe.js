@@ -4,11 +4,17 @@
 //   views   {id: [x, y, z]}  unit viewing directions; written when a marker is dragged
 // A view and its antipode are equivalent: a marker is drawn on the camera-facing end, and a drag
 // keeps the view on its own end of the line.
+// With `mollweide: true`, a small Mollweide map of the whole sphere sits in the top-right corner of
+// the globe's square, clear of the disc: the half the globe hides is veiled, each view is a filled
+// square (its antipode hollow), + is the globe's centre; clicking or dragging on it turns the globe.
 
 import { createStage, dragHelper, cssVar, rgb, context2d } from "figpress-apps/stage.js";
-import { mat3, trackball, project, unproject, facing, unit, dot } from "figpress-apps/geom.js";
+import { mat3, trackball, project, unproject, facing, unit, dot, mollweide, unmollweide, lookAt } from "figpress-apps/geom.js";
 
 const DRAG_STEP = 3; // shading-resolution divisor while rotating
+const INSET = 0.25; // Mollweide width / the globe's square; at radius 0.46 it clears the disc by 0.02
+const VEIL = 0.45; // grey mixed into the half of the inset the globe hides
+const MAP = Symbol("mollweide"); // drag target: the inset
 
 const GRIDS = new Map(); // size → per-pixel unit vectors (u, v, w); w = −1 outside the disc
 
@@ -57,6 +63,43 @@ export function shade(camera, texture, size, out, base = [255, 255, 255]) {
   return out;
 }
 
+const MAP_GRIDS = new Map(); // "w×h" → per-pixel unit vectors of the Mollweide map; NaN outside it
+
+function mapGrid(w, h) {
+  let g = MAP_GRIDS.get(`${w}x${h}`);
+  if (g) return g;
+  if (MAP_GRIDS.size > 4) MAP_GRIDS.clear();
+  g = new Float32Array(3 * w * h).fill(NaN);
+  for (let py = 0, k = 0; py < h; py++) for (let px = 0; px < w; px++, k += 3) {
+    const d = unmollweide(4 * (px + 0.5) / w - 2, 1 - 2 * (py + 0.5) / h);
+    if (d) g.set(d, k);
+  }
+  MAP_GRIDS.set(`${w}x${h}`, g);
+  return g;
+}
+
+/**
+ * Shade a Mollweide map of the whole sphere into `out` (RGBA, w×h, the map's ellipse filling it):
+ * the texture over `base` as in shade(), the hemisphere facing away from the camera mixed with grey.
+ * Pixels outside the ellipse are left untouched.
+ */
+export function shadeMollweide(camera, texture, w, h, out, base = [255, 255, 255]) {
+  const [H, W] = texture.shape, tex = texture.data, f = mat3.row(camera, 2);
+  const ki = (H - 1) / Math.PI, kj = (W - 1) / (2 * Math.PI);
+  const g = mapGrid(w, h);
+  for (let k = 0, o = 0; k < g.length; k += 3, o += 4) {
+    const d = [g[k], g[k + 1], g[k + 2]];
+    if (Number.isNaN(d[0])) continue;
+    let az = Math.atan2(d[1], d[0]);
+    if (az < 0) az += 2 * Math.PI;
+    const t = 4 * (Math.round(Math.acos(d[2]) * ki) * W + Math.round(az * kj));
+    const al = tex[t + 3] / 255, veil = dot(f, d) < 0 ? VEIL : 0;
+    for (let c = 0; c < 3; c++) out[o + c] = (1 - veil) * ((1 - al) * base[c] + al * tex[t + c]) + veil * 128;
+    out[o + 3] = 255;
+  }
+  return out;
+}
+
 const triples = ({ data }) => Array.from({ length: data.length / 3 }, (_, i) => [data[3 * i], data[3 * i + 1], data[3 * i + 2]]);
 
 function inside(poly, x, y) {
@@ -73,7 +116,7 @@ function inside(poly, x, y) {
  * colors {id: css colour}, markerAxes(id, view) → [ex, ey] tangent axes of the square,
  * markerSizeDeg (half-width of a square, degrees on the sphere).
  */
-export function mount(el, model, { texture, lines = {}, points = {}, colors = {}, markerAxes, markerSizeDeg = 5.5 }) {
+export function mount(el, model, { texture, lines = {}, points = {}, colors = {}, markerAxes, markerSizeDeg = 5.5, mollweide: inset = false }) {
   const box = document.createElement("div");
   box.className = "fk-plot fk-globe";
   box.style.cursor = "grab";
@@ -82,14 +125,20 @@ export function mount(el, model, { texture, lines = {}, points = {}, colors = {}
   const P = Object.fromEntries(Object.entries(points).map(([k, v]) => [k, triples(v)]));
   const H = Math.tan(markerSizeDeg * Math.PI / 180);
   const shadeCanvas = document.createElement("canvas");
+  const mapCanvas = document.createElement("canvas");
   let geo = { cx: 0, cy: 0, r: 0 }, shadeKey = null, rotating = false, squares = [];
+  let map = null, mapKey = null; // the inset's rectangle {x, y, w, h} in CSS pixels
 
   const stage = createStage(box, {
     onResize(s) {
       const size = Math.min(s.width, s.height);
       geo = { cx: s.width / 2, cy: s.height / 2, r: 0.46 * size };
       Object.assign(s.canvas.dataset, { cx: geo.cx, cy: geo.cy, r: geo.r });
-      shadeKey = null;
+      shadeKey = mapKey = null;
+      if (inset) {
+        map = { x: geo.cx + size / 2 - INSET * size, y: geo.cy - size / 2, w: INSET * size, h: INSET * size / 2 };
+        s.canvas.dataset.mollweide = [map.x, map.y, map.w, map.h].join();
+      }
     },
     draw,
   });
@@ -163,17 +212,55 @@ export function mount(el, model, { texture, lines = {}, points = {}, colors = {}
       ctx.strokeStyle = "#000"; ctx.lineWidth = 1.2; ctx.stroke();
       return { id, poly };
     });
+    if (map) drawMap(ctx, camera, views, fg, muted);
   }
+
+  const toMap = (d) => { const [x, y] = mollweide(d); return [map.x + (x + 2) / 4 * map.w, map.y + (1 - y) / 2 * map.h]; };
+  const fromMap = (x, y) => unmollweide(4 * (x - map.x) / map.w - 2, 1 - 2 * (y - map.y) / map.h);
+
+  function drawMap(ctx, camera, views, fg, muted) {
+    const w = Math.max(2, Math.round(map.w * stage.dpr)), h = Math.max(1, Math.round(map.h * stage.dpr));
+    const base = rgb(cssVar(box, "--fk-bg", "#fff")), key = `${camera.join()}|${w}|${base}`;
+    if (key !== mapKey) {
+      mapKey = key;
+      mapCanvas.width = w; mapCanvas.height = h;
+      const g = context2d(mapCanvas), img = g.createImageData(w, h);
+      shadeMollweide(camera, texture, w, h, img.data, base);
+      g.putImageData(img, 0, 0);
+    }
+    ctx.drawImage(mapCanvas, map.x, map.y, map.w, map.h);
+    ctx.beginPath(); ctx.ellipse(map.x + map.w / 2, map.y + map.h / 2, map.w / 2, map.h / 2, 0, 0, 2 * Math.PI);
+    ctx.strokeStyle = muted; ctx.lineWidth = 1; ctx.stroke();
+    const m = Math.max(3, map.w / 40);
+    for (const [id, view] of Object.entries(views)) {
+      ctx.strokeStyle = ctx.fillStyle = colors[id] ?? "#555"; ctx.lineWidth = 1.5;
+      const [ax, ay] = toMap(view.map((c) => -c));
+      ctx.strokeRect(ax - m, ay - m, 2 * m, 2 * m);
+      const [x, y] = toMap(view);
+      ctx.fillRect(x - m, y - m, 2 * m, 2 * m);
+    }
+    const [x, y] = toMap(mat3.row(camera, 2));
+    ctx.beginPath(); ctx.moveTo(x - 1.5 * m, y); ctx.lineTo(x + 1.5 * m, y); ctx.moveTo(x, y - 1.5 * m); ctx.lineTo(x, y + 1.5 * m);
+    ctx.strokeStyle = fg; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+
+  const turnTo = (x, y) => {
+    const d = fromMap(x, y);
+    if (d) model.set("camera", lookAt(model.get("camera"), d));
+  };
 
   let sign = 1;
   const undrag = dragHelper(stage.canvas, {
-    hitTest: (x, y) => [...squares].reverse().find((s) => inside(s.poly, x, y))?.id ?? null,
-    onStart(target) {
+    hitTest: (x, y) => (map && fromMap(x, y) ? MAP : [...squares].reverse().find((s) => inside(s.poly, x, y))?.id ?? null),
+    onStart(target, x, y) {
+      if (target === MAP) { turnTo(x, y); return; }
       if (target === null) { rotating = true; box.style.cursor = "grabbing"; return; }
       sign = dot(mat3.row(model.get("camera"), 2), model.get("views")[target]) < 0 ? -1 : 1;
     },
     onMove(target, dx, dy, x, y) {
-      if (target === null) {
+      if (target === MAP) {
+        turnTo(x, y);
+      } else if (target === null) {
         model.set("camera", trackball(model.get("camera"), dx, dy, geo.r));
       } else {
         const v = unproject(model.get("camera"), x, y, geo).map((c) => sign * c);
@@ -186,6 +273,13 @@ export function mount(el, model, { texture, lines = {}, points = {}, colors = {}
     },
   });
 
+  const hover = (e) => { // crosshair over the inset, a hand elsewhere (unless mid-drag)
+    if (!map || e.buttons) return;
+    const b = stage.canvas.getBoundingClientRect();
+    box.style.cursor = fromMap(e.clientX - b.left, e.clientY - b.top) ? "crosshair" : "grab";
+  };
+  stage.canvas.addEventListener("pointermove", hover);
+
   stage.canvas.appModel = model; // for debugging and tests, with data-cx/cy/r
   const redraw = () => stage.requestDraw();
   model.on("change:camera", redraw);
@@ -194,6 +288,7 @@ export function mount(el, model, { texture, lines = {}, points = {}, colors = {}
     model.off("change:camera", redraw);
     model.off("change:views", redraw);
     undrag();
+    stage.canvas.removeEventListener("pointermove", hover);
     stage.dispose();
     box.remove();
   };

@@ -13,10 +13,11 @@ and removes its listeners on dispose. Mount several components on one model to l
 | `colors` | `{id: css colour}` |
 | `markerAxes` | `(id, view) → [ex, ey]` tangent axes of id's square (globe frame); default: screen axes |
 | `markerSizeDeg` | half-width of a square in degrees (default 5.5) |
+| `mollweide` | `true`: a small Mollweide map of the whole sphere in the top-right corner of the globe's square, clear of the disc (default `false`). Longitude `atan2(y, x)` grows to the right, as matplotlib's `"mollweide"` axes; the half the globe hides is veiled; each view is a filled square, its antipode hollow; `+` is the globe's centre. Clicking or dragging on it turns the globe to face that direction (writes `camera`) |
 
 Model: reads/writes `camera` (rotate by dragging the background) and `views`
 (`{id: [x, y, z]}`, drag a square). Calls `save_changes()` on pointer-up.
-Pure kernel: `shade(camera, texture, size, out, base = [255, 255, 255])` — `base` is an `[r, g, b]` array (0–255), e.g. `rgb(cssVar(el, "--fk-bg", "#fff"))`.
+Pure kernels: `shade(camera, texture, size, out, base = [255, 255, 255])` — `base` is an `[r, g, b]` array (0–255), e.g. `rgb(cssVar(el, "--fk-bg", "#fff"))`; `shadeMollweide(camera, texture, w, h, out, base)`, the inset's map.
 
 ## figpress-apps/skypanel.js — `mount(el, model, opts)` (the general 2-D panel)
 
@@ -42,7 +43,9 @@ Pure helper: `autoscale(xy, pad = 0.55) → {cx, cy, half}` (equal aspect, frame
 
 `dot cross norm unit scale add`; `mat3.{identity,row,mul,apply,applyT,transpose,orthonormalize}`;
 `rotationToZ(v)`; `trackball(camera, dx, dy, r)`; `project(camera, p, {cx, cy, r})` →
-`[x, y, depth]`; `unproject(camera, x, y, geo)`; `facing(camera, v)`.
+`[x, y, depth]`; `unproject(camera, x, y, geo)`; `facing(camera, v)`; `mollweide(d)` → `[x, y]` on the
+ellipse x²/4 + y² ≤ 1 and `unmollweide(x, y)` → unit vector or `null`; `lookAt(camera, d)`, the camera
+turned to face `d`.
 
 ## figpress-apps/stage.js
 
