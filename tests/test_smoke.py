@@ -51,6 +51,12 @@ def check_page(page, url):
     after = readouts(page)
     assert after["orbit1"] != before["orbit1"]
     assert all(after[i] == before[i] for i in PAPER if i != "orbit1")
+
+    # click the Mollweide inset's centre (lon 0, lat 0): the globe turns to face +x
+    mx, my, mw, mh = (float(v) for v in cv.get_attribute("data-mollweide").split(","))
+    page.mouse.click(box["x"] + mx + mw / 2, box["y"] + my + mh / 2)
+    toward = page.evaluate("document.querySelector('canvas[data-r]').appModel.get('camera')")[6:9]
+    assert abs(toward[0] - 1) < 0.02, toward
     assert not foreign, foreign
 
 

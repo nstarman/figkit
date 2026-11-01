@@ -48,6 +48,7 @@ export default {
       colors,
       markerAxes: (id, view) => markerAxes(streams[id], view),
       markerSizeDeg: meta.cap_deg,
+      mollweide: true, // the whole sky, as the paper's map, in the globe's corner
     })];
     for (const s of meta.streams) {
       const panel = document.createElement("div");

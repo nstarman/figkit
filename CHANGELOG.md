@@ -12,6 +12,16 @@ Every release has a section. Every breaking change has a migration note with thr
 
 A release with a breaking change that has no migration note is not tagged.
 
+## Unreleased
+
+### Added
+
+- The globe can show a small Mollweide map of the whole sphere in a corner, linked to it:
+  `mount(el, model, { …, mollweide: true })`. The half the globe hides is veiled, each view is a
+  square on it, and clicking or dragging on the map turns the globe there. New pure functions:
+  `geom.mollweide`, `geom.unmollweide`, `geom.lookAt` and `shadeMollweide` (globe.js). Nothing
+  changes for apps that don't pass `mollweide`.
+
 ## 2026.10.29 — 2026-10-29
 
 - Apps follow a theme the page pins with `<html data-theme="light|dark">` (a site's toggle), not only
