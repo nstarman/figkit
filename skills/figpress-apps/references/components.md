@@ -59,8 +59,9 @@ Styles: `figpress-apps/index.css` — `.fk-app`, `.fk-toolbar`, `.fk-panel`, `.f
 the responsive `.fk-split` (side by side, stacked below 760 px) and `.fk-grid-2` (two columns, one
 below 320 px). Their breakpoints are container queries on `.fk-app`, so they follow the app's width
 (a notebook cell, a phone). Light/dark variables (`--fk-bg`, `--fk-fg`, `--fk-muted`, …) follow the
-system theme, or the one the page pins with `<html data-theme="light|dark">`; canvas code reads them with `cssVar(el, "--fk-fg", fallback)` at draw time, and
-`createStage` redraws when the theme changes. Use layout classes, not inline grid styles, so apps
+system theme, or the one the page pins with `<html data-theme="light">` (or `"dark"`); canvas
+code reads them with `cssVar(el, "--fk-fg", fallback)` at draw time, and `createStage` redraws
+when the theme changes. Use layout classes, not inline grid styles, so apps
 work on phones.
 
 ## Adding a component
