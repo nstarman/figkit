@@ -19,6 +19,17 @@ A release with a breaking change that has no migration note is not tagged.
 - Rotating the globe with the Mollweide inset is faster again: `shadeMollweide` caches each map
   pixel's texel, so a frame only redoes the hidden-half veil. The inset had cut the rotation frame
   rate by about 15%, enough to fail the smoke test's 30 frames/s on CI. Output is unchanged.
+  Also released as 2026.11.01.1.
+
+## 2026.11.01.1 — 2026-11-04
+
+Bug-fix release of 2026.11.01 (branch `versions/v2026.11.01.x`).
+
+### Fixed
+
+- Rotating the globe with the Mollweide inset is faster again: `shadeMollweide` caches each map
+  pixel's texel, so a frame only redoes the hidden-half veil. The inset had cut the rotation frame
+  rate by about 15%, enough to fail the smoke test's 30 frames/s on CI. Output is unchanged.
 
 ## 2026.11.01 — 2026-11-01
 
