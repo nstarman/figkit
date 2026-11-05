@@ -49,3 +49,14 @@ test("shadeMollweide: ellipse only; the hidden half veiled", () => {
   assert.deepEqual(Array.from(px(40, 5)), [255, 255, 255, 255]); // north: plain background
   assert.ok(px(40, 35)[0] < 230 && px(40, 35)[3] === 255); // south: veiled
 });
+
+test("shadeMollweide: turning the camera redoes only the veil, no trig per pixel", () => {
+  // guards the rotation frame rate (test_drag_frame_rate): the texture lookup doesn't depend on the camera
+  const H = 19, W = 37, tex = { shape: [H, W, 4], data: new Uint8Array(H * W * 4).fill(200) };
+  const w = 80, h = 40, out = new Uint8ClampedArray(w * h * 4);
+  shadeMollweide(mat3.identity(), tex, w, h, out);
+  const atan2 = Math.atan2; let calls = 0;
+  Math.atan2 = (y, x) => (calls++, atan2(y, x));
+  try { shadeMollweide(trackball(mat3.identity(), 40, 10, 100), tex, w, h, out); } finally { Math.atan2 = atan2; }
+  assert.equal(calls, 0);
+});

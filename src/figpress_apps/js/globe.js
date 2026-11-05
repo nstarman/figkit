@@ -78,22 +78,35 @@ function mapGrid(w, h) {
   return g;
 }
 
+const MAP_TEXELS = new WeakMap(); // texture → the grid it was indexed for → texel offsets (-1 outside the map)
+
+function mapTexels(texture, g) { // camera-independent, so rotating only redoes the veil
+  const [H, W] = texture.shape, t = MAP_TEXELS.get(texture);
+  if (t?.g === g && t.H === H && t.W === W) return t.idx;
+  const ki = (H - 1) / Math.PI, kj = (W - 1) / (2 * Math.PI);
+  const idx = new Int32Array(g.length / 3).fill(-1);
+  for (let k = 0, i = 0; k < g.length; k += 3, i++) {
+    if (Number.isNaN(g[k])) continue;
+    let az = Math.atan2(g[k + 1], g[k]);
+    if (az < 0) az += 2 * Math.PI;
+    idx[i] = 4 * (Math.round(Math.acos(g[k + 2]) * ki) * W + Math.round(az * kj));
+  }
+  MAP_TEXELS.set(texture, { g, H, W, idx });
+  return idx;
+}
+
 /**
  * Shade a Mollweide map of the whole sphere into `out` (RGBA, w×h, the map's ellipse filling it):
  * the texture over `base` as in shade(), the hemisphere facing away from the camera mixed with grey.
  * Pixels outside the ellipse are left untouched.
  */
 export function shadeMollweide(camera, texture, w, h, out, base = [255, 255, 255]) {
-  const [H, W] = texture.shape, tex = texture.data, f = mat3.row(camera, 2);
-  const ki = (H - 1) / Math.PI, kj = (W - 1) / (2 * Math.PI);
-  const g = mapGrid(w, h);
-  for (let k = 0, o = 0; k < g.length; k += 3, o += 4) {
-    const d = [g[k], g[k + 1], g[k + 2]];
-    if (Number.isNaN(d[0])) continue;
-    let az = Math.atan2(d[1], d[0]);
-    if (az < 0) az += 2 * Math.PI;
-    const t = 4 * (Math.round(Math.acos(d[2]) * ki) * W + Math.round(az * kj));
-    const al = tex[t + 3] / 255, veil = dot(f, d) < 0 ? VEIL : 0;
+  const tex = texture.data, [f0, f1, f2] = mat3.row(camera, 2);
+  const g = mapGrid(w, h), idx = mapTexels(texture, g);
+  for (let k = 0, i = 0, o = 0; i < idx.length; k += 3, i++, o += 4) {
+    const t = idx[i];
+    if (t < 0) continue;
+    const al = tex[t + 3] / 255, veil = f0 * g[k] + f1 * g[k + 1] + f2 * g[k + 2] < 0 ? VEIL : 0;
     for (let c = 0; c < 3; c++) out[o + c] = (1 - veil) * ((1 - al) * base[c] + al * tex[t + c]) + veil * 128;
     out[o + 3] = 255;
   }
