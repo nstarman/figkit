@@ -53,7 +53,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv sync
       - run: uv run playwright install --with-deps ${{ matrix.browser }}
-      - run: uv run pytest -m smoke --browser ${{ matrix.browser }}
+      - run: uv run pytest -m smoke --browser ${{ matrix.browser }} -rP  # -rP: show the measured frame rate
 
   # A live preview of the gallery for every pull request, so a change to figpress-apps can be looked at,
   # not imagined. GitHub Pages serves one deployment (the released gallery), so previews go to
