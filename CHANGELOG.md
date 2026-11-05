@@ -18,7 +18,7 @@ A release with a breaking change that has no migration note is not tagged.
 
 - The globe draws a view's square on the camera-facing end of its line; the skill and `facing()`'s
   docstring now say to read the shown direction with `facing(camera, views[id])` (#15).
-- The skill now says to check layouts at phone width and either side of each breakpoint, and how
+- The skill now says to check layouts at phone width and on either side of each breakpoint, and how
   two apps in one repository share a module by symlink (#17).
 
 ### Fixed
