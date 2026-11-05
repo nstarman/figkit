@@ -62,6 +62,19 @@ tested in the browser on a small test app.
     `.fk-legend-toggle[aria-pressed="false"]` (opacity 0.35, struck through), `.fk-card` (the
     popover: fixed, `width: min(92vw, 340px)`, border, radius, shadow). The look is CP2's.
 
+## Changes made while implementing
+
+- **No `release()`.** `hoverCard` listens for `pointerup`/`pointercancel` on the window itself and
+  re-checks after its delay, so an app never has to say a drag ended. `hoverCard` and `mount` both
+  return a plain dispose function, as components do (constitution V).
+- **Each card follows its entry in the DOM**, so Tab goes from an entry into its card's controls.
+  Closed, a card is not displayed; open, it is in the top layer, so the legend's layout is unchanged.
+- **The mouse position is tracked** (`pointermove` on the window) instead of reading `:hover`, which
+  WebKit leaves on a drag's start until the mouse moves again.
+- **Only keyboard focus opens a card** (`:focus-visible`): a tap focuses the button before its click,
+  which would otherwise open and immediately close the card.
+- **Escape moves focus to the trigger before closing**, or arriving there by keyboard reopened it.
+
 ## Constitution Check
 
 - I. Web-native: plain ES modules and CSS, popover API is native. Pass.

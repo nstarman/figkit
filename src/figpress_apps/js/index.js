@@ -7,6 +7,7 @@ export * as geom from "figpress-apps/geom.js";
 export { createStage, dragHelper, cssVar, rgb, context2d } from "figpress-apps/stage.js";
 export { mount as mountGlobe, shade, shadeMollweide } from "figpress-apps/globe.js";
 export { mount as mountSkyPanel, autoscale } from "figpress-apps/skypanel.js";
+export { mount as mountLegend, hoverCard } from "figpress-apps/legend.js";
 
 import { createModel } from "figpress-apps/model.js";
 

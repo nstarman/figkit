@@ -8,24 +8,24 @@ no pending dependency). US1 = toggles, US2 = hover cards, US3 = the developer-fa
 
 ## Phase 1: Setup
 
-- [ ] T001 Create the module `src/figpress_apps/js/legend.js` with its header comment and empty
+- [X] T001 Create the module `src/figpress_apps/js/legend.js` with its header comment and empty
   exports `mount`, `hoverCard`, `placeCard`, and export `mountLegend` and `hoverCard` from
   `src/figpress_apps/js/index.js`
-- [ ] T002 [P] Test app `tests/apps/legend/` (`index.html`, `widget.js`): a legend of one plain
+- [X] T002 [P] Test app `tests/apps/legend/` (`index.html`, `widget.js`): a legend of one plain
   entry, two toggles (model keys `a`, `b`, each hiding a coloured line in a small SVG plot), and two
   card entries (one holding a range slider, one holding a 120 × 60 px area that sets `busy` while
   a pointer drag is in progress); a "set a from outside" button and a "dispose" button
-- [ ] T003 [P] Fixture in `tests/conftest.py` building the test app (served site and single file)
+- [X] T003 [P] Fixture in `tests/conftest.py` building the test app (served site and single file)
   and serving it, as `globe_site`/`served` do
 
 ## Phase 2: Foundational
 
-- [ ] T004 [P] `js-tests/legend-place.test.js`: `placeCard` above when it fits with an 8 px margin,
+- [X] T004 [P] `js-tests/legend-place.test.js`: `placeCard` above when it fits with an 8 px margin,
   below when not, clamped at the left and right edges, pinned to the left margin when wider than
   the viewport
-- [ ] T005 `placeCard(triggerRect, cardSize, viewport, margin = 8) → {left, top}` in
+- [X] T005 `placeCard(triggerRect, cardSize, viewport, margin = 8) → {left, top}` in
   `src/figpress_apps/js/legend.js` (plan decision 7); T004 passes
-- [ ] T006 [P] Legend and card styles in `src/figpress_apps/js/index.css`: `.fk-legend`,
+- [X] T006 [P] Legend and card styles in `src/figpress_apps/js/index.css`: `.fk-legend`,
   `.fk-legend-entry`, `.fk-legend-card`, `.fk-legend-toggle[aria-pressed="false"]`, `.fk-card`
   (plan decision 10), on theme variables
 
@@ -36,10 +36,10 @@ no pending dependency). US1 = toggles, US2 = hover cards, US3 = the developer-fa
 **Goal**: clicking an entry shows or hides its curve; the legend shows which are on.
 **Independent test**: the toggle smoke tests below, on the test app.
 
-- [ ] T007 [P] [US1] Smoke tests in `tests/test_smoke.py`, both outputs: click hides (model `a`
+- [X] T007 [P] [US1] Smoke tests in `tests/test_smoke.py`, both outputs: click hides (model `a`
   false, `aria-pressed="false"`, line hidden); click restores; "set a from outside" updates the
   button; Space on the focused button toggles; one `save_changes` per click
-- [ ] T008 [US1] Plain and toggle entries in `mount` in `src/figpress_apps/js/legend.js`: a span or
+- [X] T008 [US1] Plain and toggle entries in `mount` in `src/figpress_apps/js/legend.js`: a span or
   a `<button type="button" aria-pressed>` with the app's icon and label; click does
   `model.set(key, !on)` then `model.save_changes()`; `model.on("change:<key>")` keeps
   `aria-pressed` in step; a missing value is on; an entry with both `toggle` and `card` throws;
@@ -53,19 +53,19 @@ no pending dependency). US1 = toggles, US2 = hover cards, US3 = the developer-fa
 after a slider drag.
 **Independent test**: the card smoke tests below, on the test app.
 
-- [ ] T009 [P] [US2] Smoke tests in `tests/test_smoke.py`, both outputs: hover opens the card inside
+- [X] T009 [P] [US2] Smoke tests in `tests/test_smoke.py`, both outputs: hover opens the card inside
   the viewport; entry → card keeps it open; leaving both closes it within 0.5 s; **drag the slider,
   leave: closed within 0.5 s (SC-001)**; busy drag left mid-drag stays open, closes after the drag
   ends outside; Tab to the entry opens, Tab into the card keeps it open, Tab out closes, Escape
   closes and refocuses the entry; touch context (`has_touch`): tap opens, tap again closes;
   hovering the second card entry closes the first
-- [ ] T010 [US2] `hoverCard(trigger, card, {busy, group}) → {release, dispose}` in
+- [X] T010 [US2] `hoverCard(trigger, card, {busy, group}) → {release, dispose}` in
   `src/figpress_apps/js/legend.js`: `popover="manual"`; open on mouse/pen `pointerenter` and on
   `focusin`; close 250 ms after leaving both unless busy; blur focus inside on pointer leave when
   not busy (plan decision 5); click toggles; pointer events ignored for touch (decision 6); Escape
   closes and refocuses the trigger (decision 8); re-place on open, `resize`, `scroll` (capture) and
   `ResizeObserver`; `group` keeps one card open; `dispose` removes listeners, observer, timers
-- [ ] T011 [US2] Card entries in `mount` in `src/figpress_apps/js/legend.js`: a button with `.fk-legend-card`,
+- [X] T011 [US2] Card entries in `mount` in `src/figpress_apps/js/legend.js`: a button with `.fk-legend-card`,
   a trailing ✎, `aria-haspopup="dialog"` and `aria-expanded` in step; the card element gets
   `.fk-card` and is appended to the legend's element; one `group` per legend; `dispose` also
   disposes its cards and removes them. T009 passes
@@ -77,19 +77,19 @@ after a slider drag.
 **Goal**: a developer declares entries and gets a themed legend that wraps on a phone.
 **Independent test**: the layout and dispose smoke tests, and the docs example.
 
-- [ ] T012 [P] [US3] Smoke tests in `tests/test_smoke.py`: at 375 px the page has no horizontal
+- [X] T012 [P] [US3] Smoke tests in `tests/test_smoke.py`: at 375 px the page has no horizontal
   scroll and an open card fits (SC-005); with `data-theme="dark"` pinned, the card's background is
   the dark `--fk-bg`; after "dispose", no `.fk-card` or `.fk-legend` remains
-- [ ] T013 [US3] Fix anything T012 finds in `src/figpress_apps/js/legend.js` or
+- [X] T013 [US3] Fix anything T012 finds in `src/figpress_apps/js/legend.js` or
   `src/figpress_apps/js/index.css`; T012 passes
-- [ ] T014 [P] [US3] A `legend.js` section in `skills/figpress-apps/references/components.md`
+- [X] T014 [P] [US3] A `legend.js` section in `skills/figpress-apps/references/components.md`
   (entry fields, `mount`, `hoverCard` and `release`, the four-entry example, which must stay within
   about 20 lines: SC-003) and a pointer to it in `skills/figpress-apps/SKILL.md` step 4
 
 ## Phase 6: Polish
 
-- [ ] T015 [P] `CHANGELOG.md`: Unreleased → Added, `figpress-apps/legend.js` (#16)
-- [ ] T016 Run the full suite: `uv run pytest`,
+- [X] T015 [P] `CHANGELOG.md`: Unreleased → Added, `figpress-apps/legend.js` (#16)
+- [X] T016 Run the full suite: `uv run pytest`,
   `uv run python tests/make_fixtures.py && node --test js-tests/*.test.js`,
   `uv run pytest -m smoke --browser chromium --browser webkit` (Firefox in CI)
 - [ ] T017 Open the pull request (closes #16); after release, open the CP2 port as a separate change
