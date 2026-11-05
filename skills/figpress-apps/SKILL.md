@@ -89,6 +89,24 @@ w.views   # state syncs back after each interaction
 
 JupyterLab must run in an environment with `anywidget` and `ipywidgets` installed.
 
+## Embedding in a reveal.js deck
+
+The single file can sit in a slide as a (background) iframe. What the app itself needs:
+
+- **Pin the theme** to the deck's: `<html lang="en" data-theme="light">` in the app's `index.html`.
+  Otherwise it follows the system theme, and the deck can't script into an inlined iframe to fix it.
+- **Nothing that appears on interaction may move the layout.** Give hover readouts and labels a
+  fixed box (e.g. `display:block; height:2.6em; overflow:hidden; font-variant-numeric:tabular-nums`),
+  so a longer value or a new line never shifts the plot under the pointer.
+- **Overlapping regions:** pick the one under the pointer by a rule that leaves each reachable
+  (e.g. the smallest containing region wins), and show a region's label only while it is hovered,
+  not always.
+- **Give it a still for PDF/print:** canvas/WebGL prints blank, so export a static image of the app
+  for the printed deck.
+
+Inlining the app into one shareable deck file, and the rest of the deck side, are in the
+`quarto-revealjs` skill in [nstarman/skills](https://github.com/nstarman/skills).
+
 ## Worked example
 
 [references/worked-example.md](references/worked-example.md) walks through figpress-apps' globe example
