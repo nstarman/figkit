@@ -12,7 +12,7 @@ Every release has a section. Every breaking change has a migration note with thr
 
 A release with a breaking change that has no migration note is not tagged.
 
-## Unreleased
+## 2026.11.05 — 2026-11-05
 
 ### Added
 
