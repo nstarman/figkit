@@ -28,6 +28,11 @@ app), `science.js` (pure science), `science.test.js`, `export.py`. Rename the da
 structure and put your state (e.g. an angle) in `views[id]` — see
 [references/components.md](references/components.md) (`skypanel` is the general 2-D panel).
 
+Two apps in one repository that need the same module (a pure `science.js`, a drawing helper) keep
+one copy in one app and symlink it from the other (`ln -s ../<other>/science.js webapps/<name>/`).
+Both import it as `app/science.js`; `figpress-apps build` reads the symlink's target, so each
+built site and single file carries its own copy. Edit the real file, and test both apps.
+
 ## 2. Export the data — `export.py`
 
 Write the arrays the page needs with `figpress_apps.export(out, name, arrays, meta=…)`
@@ -78,6 +83,11 @@ The build fails on relative imports, `import.meta.url`, unresolvable or remote i
 datasets of another data-format version — fix the code, never work around the check. Check both
 outputs in a browser: the served page and the single file from disk. To read the panels'
 readouts headlessly, use [references/check-page.md](references/check-page.md).
+
+Check every layout change at phone width (375 px) and just either side of each breakpoint, not
+only on desktop: panels that should sit side by side, stack, or turn when stacked, and a globe or
+plot too large to use, show up only there. In a browser's device mode the layout follows the app's
+width, since `.fk-split` and `.fk-grid-2` use container queries.
 
 ## 6. Notebook (optional)
 
