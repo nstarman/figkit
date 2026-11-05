@@ -94,15 +94,16 @@ JupyterLab must run in an environment with `anywidget` and `ipywidgets` installe
 The single file can sit in a slide as a (background) iframe. What the app itself needs:
 
 - **Pin the theme** to the deck's: `<html lang="en" data-theme="light">` in the app's `index.html`.
-  Otherwise it follows the system theme, and the deck can't script into an inlined iframe to fix it.
+  Otherwise it follows the system theme, not the deck's: the deck can't script into a `data:`
+  iframe, and an iframe doesn't inherit the deck's `color-scheme`.
 - **Nothing that appears on interaction may move the layout.** Give hover readouts and labels a
   fixed box (e.g. `display:block; height:2.6em; overflow:hidden; font-variant-numeric:tabular-nums`),
   so a longer value or a new line never shifts the plot under the pointer.
 - **Overlapping regions:** pick the one under the pointer by a rule that leaves each reachable
   (e.g. the smallest containing region wins), and show a region's label only while it is hovered,
   not always.
-- **Give it a still for PDF/print:** canvas/WebGL prints blank, so export a static image of the app
-  for the printed deck.
+- **Give it a still for PDF/print:** the live app does not reliably make it into a printed deck
+  (reveal's `?print-pdf`), so export a static image of it for the PDF.
 
 Inlining the app into one shareable deck file, and the rest of the deck side, are in the
 `quarto-revealjs` skill in [nstarman/skills](https://github.com/nstarman/skills).
