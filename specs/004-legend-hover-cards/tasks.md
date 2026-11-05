@@ -92,7 +92,7 @@ after a slider drag.
 - [X] T016 Run the full suite: `uv run pytest`,
   `uv run python tests/make_fixtures.py && node --test js-tests/*.test.js`,
   `uv run pytest -m smoke --browser chromium --browser webkit` (Firefox in CI)
-- [ ] T017 Open the pull request (closes #16); after release, open the CP2 port as a separate change
+- [X] T017 Open the pull request (closes #16); after release, open the CP2 port as a separate change
   in the paper repository (SC-002)
 
 ## Dependencies
