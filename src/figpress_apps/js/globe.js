@@ -81,9 +81,9 @@ function mapGrid(w, h) {
 const MAP_TEXELS = new WeakMap(); // texture → the grid it was indexed for → texel offsets (-1 outside the map)
 
 function mapTexels(texture, g) { // camera-independent, so rotating only redoes the veil
-  let t = MAP_TEXELS.get(texture);
-  if (t?.g === g) return t.idx;
-  const [H, W] = texture.shape, ki = (H - 1) / Math.PI, kj = (W - 1) / (2 * Math.PI);
+  const [H, W] = texture.shape, t = MAP_TEXELS.get(texture);
+  if (t?.g === g && t.H === H && t.W === W) return t.idx;
+  const ki = (H - 1) / Math.PI, kj = (W - 1) / (2 * Math.PI);
   const idx = new Int32Array(g.length / 3).fill(-1);
   for (let k = 0, i = 0; k < g.length; k += 3, i++) {
     if (Number.isNaN(g[k])) continue;
@@ -91,7 +91,7 @@ function mapTexels(texture, g) { // camera-independent, so rotating only redoes 
     if (az < 0) az += 2 * Math.PI;
     idx[i] = 4 * (Math.round(Math.acos(g[k + 2]) * ki) * W + Math.round(az * kj));
   }
-  MAP_TEXELS.set(texture, { g, idx });
+  MAP_TEXELS.set(texture, { g, H, W, idx });
   return idx;
 }
 
