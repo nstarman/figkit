@@ -17,6 +17,10 @@ and removes its listeners on dispose. Mount several components on one model to l
 
 Model: reads/writes `camera` (rotate by dragging the background) and `views`
 (`{id: [x, y, z]}`, drag a square). Calls `save_changes()` on pointer-up.
+A view and its antipode are the same view, and the square is drawn on whichever end faces the
+camera; a stored `views[id]` may point the other way. Read the direction a square shows with
+`facing(camera, views[id])` (from `geom.js`), never `views[id]` alone, or it flips to the antipode
+when the globe turns.
 Pure kernels: `shade(camera, texture, size, out, base = [255, 255, 255])` — `base` is an `[r, g, b]` array (0–255), e.g. `rgb(cssVar(el, "--fk-bg", "#fff"))`; `shadeMollweide(camera, texture, w, h, out, base)`, the inset's map.
 
 ## figpress-apps/skypanel.js — `mount(el, model, opts)` (the general 2-D panel)

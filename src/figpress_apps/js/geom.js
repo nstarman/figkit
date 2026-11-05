@@ -64,6 +64,9 @@ export function unproject(camera, x, y, { cx, cy, r }) {
 }
 
 /** v or −v, whichever end of the line faces the camera. */
+/** v or −v, whichever points toward the camera: the end of a view's line where the globe draws its
+ *  marker. A view and its antipode are the same view, so read the direction a marker shows as
+ *  facing(camera, views[id]), not views[id]. */
 export const facing = (camera, v) => (dot(mat3.row(camera, 2), v) >= 0 ? v : scale(v, -1));
 
 /**
