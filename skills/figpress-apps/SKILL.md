@@ -84,7 +84,7 @@ datasets of another data-format version — fix the code, never work around the 
 outputs in a browser: the served page and the single file from disk. To read the panels'
 readouts headlessly, use [references/check-page.md](references/check-page.md).
 
-Check every layout change at phone width (375 px) and just either side of each breakpoint, not
+Check every layout change at phone width (375 px) and just on either side of each breakpoint, not
 only on desktop: panels that should sit side by side, stack, or turn when stacked, and a globe or
 plot too large to use, show up only there. In a browser's device mode the layout follows the app's
 width, since `.fk-split` and `.fk-grid-2` use container queries.

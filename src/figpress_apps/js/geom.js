@@ -63,7 +63,6 @@ export function unproject(camera, x, y, { cx, cy, r }) {
   return mat3.applyT(camera, [u, v, Math.sqrt(Math.max(0, 1 - u * u - v * v))]);
 }
 
-/** v or −v, whichever end of the line faces the camera. */
 /** v or −v, whichever points toward the camera: the end of a view's line where the globe draws its
  *  marker. A view and its antipode are the same view, so read the direction a marker shows as
  *  facing(camera, views[id]), not views[id]. */
