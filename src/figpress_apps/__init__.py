@@ -1,6 +1,6 @@
 """figpress-apps: webapps that are the interactive counterparts of scientific papers."""
 
-__version__ = "2026.11.01"
+__version__ = "2026.11.05"
 
 from figpress_apps.build import BuildError, BuildResult, build, inline_modules  # noqa: E402
 from figpress_apps.data import DataError, Dataset, export, load  # noqa: E402
