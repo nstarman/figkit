@@ -43,6 +43,41 @@ Pure helper: `autoscale(xy, pad = 0.55) → {cx, cy, half}` (equal aspect, frame
 `get(key)`, `set(key, value)` (fires `change:key` when the value is a different object),
 `on("change:key", fn)`, `off(event?, fn?)`, `save_changes()`. Same API as anywidget's model.
 
+## figpress-apps/legend.js — `mount(el, model, { entries })` (a legend that is also the controls)
+
+The figure's legend, in which clicking an entry shows or hides its curve and hovering an entry opens
+a card of that curve's controls. Returns dispose.
+
+| entry field | |
+|---|---|
+| `icon` | an `Element` the app draws: the figure's own line style or swatch (figpress-apps only lays it out) |
+| `label` | text |
+| `title` | optional tooltip |
+| `toggle` | a top-level boolean model key: click flips it and calls `save_changes()`; missing counts as on; off is drawn faded and struck through |
+| `card` | an `Element` of controls (slider, profile editor) shown in a hover card; the entry gets a dashed outline and ✎ |
+| `busy` | with `card`: `() => boolean`, true while a drag inside the card is in progress, which holds it open |
+
+An entry has `toggle` or `card` or neither (a plain key), never both. Draw the curve from the model
+key (`model.get("mond") !== false`) and redraw on `change:mond`.
+
+```js
+import { mount as mountLegend } from "figpress-apps/legend.js";
+const dispose = mountLegend(legendEl, model, { entries: [
+  { icon: lineIcon(BLUE), label: "CDM" },
+  { icon: lineIcon(RED), label: "MOND", toggle: "mond" },
+  { icon: lineIcon("currentColor", "4 2"), label: "|sin 2Δ|", toggle: "guide" },
+  { icon: bandIcon(BLUE), label: "ψ (band)", card: psiControls, busy: () => dragging },
+] });
+signal.addEventListener("abort", dispose);
+```
+
+A card opens while the mouse is over the entry or the card, or keyboard focus is in either; it
+closes 250 ms after both are left. Leaving takes focus out of the card, so a slider dragged with
+the mouse cannot hold it open. A click or tap on the entry toggles it, Escape closes it, at most
+one card of a legend is open, and it is kept inside the window as it resizes or scrolls.
+`hoverCard(trigger, card, { busy, group }) → dispose` gives the same behaviour to any trigger (a
+disk drawn in a plot, a button); `group`, an object shared by several cards, keeps one open.
+
 ## figpress-apps/geom.js (pure)
 
 `dot cross norm unit scale add`; `mat3.{identity,row,mul,apply,applyT,transpose,orthonormalize}`;

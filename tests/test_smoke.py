@@ -175,3 +175,146 @@ def test_pinned_theme(browser, served):
             assert bg() == want
         finally:
             page.close()
+
+
+# ── legend.js: toggles and hover cards (spec 004), on tests/apps/legend ─────
+
+@pytest.fixture(params=["served", "single_file"])
+def legend_url(request, legend_site):
+    if request.param == "served":
+        return request.getfixturevalue("legend_served")
+    return legend_site.single_file.as_uri()
+
+
+def open_legend(page, url):
+    page.goto(url)
+    page.wait_for_selector(".fk-legend-entry")
+    return page
+
+
+def card_open(page, label):
+    return page.evaluate("""(label) => {
+      const b = [...document.querySelectorAll('.fk-legend-card')].find((e) => e.textContent.includes(label));
+      return b.getAttribute('aria-expanded') === 'true' && document.querySelectorAll('.fk-card:popover-open').length === 1;
+    }""", label)
+
+
+def entry(page, label):
+    return page.locator(".fk-legend-entry", has_text=label)
+
+
+def wait_closed(page, label, seconds=0.5):
+    page.wait_for_function("""(label) => {
+      const b = [...document.querySelectorAll('.fk-legend-card')].find((e) => e.textContent.includes(label));
+      return b.getAttribute('aria-expanded') === 'false';
+    }""", arg=label, timeout=seconds * 1000)
+
+
+def test_legend_toggle(page, legend_url):
+    open_legend(page, legend_url)
+    page.evaluate("() => { const m = document.getElementById('app').appModel, s = m.save_changes; window.saves = 0; m.save_changes = () => { window.saves++; s(); }; }")
+    a = entry(page, "line a")
+    assert a.get_attribute("aria-pressed") == "true"
+    a.click()
+    assert a.get_attribute("aria-pressed") == "false"
+    assert page.evaluate("document.getElementById('app').appModel.get('a')") is False
+    assert page.locator("#line-a").evaluate("(l) => getComputedStyle(l).display") == "none"
+    assert page.evaluate("window.saves") == 1
+    a.click()
+    assert a.get_attribute("aria-pressed") == "true"
+    assert page.locator("#line-a").evaluate("(l) => getComputedStyle(l).display") != "none"
+    page.click("#set-a")  # changed from elsewhere: the entry follows
+    assert a.get_attribute("aria-pressed") == "false"
+    a.focus()
+    page.keyboard.press("Space")
+    assert a.get_attribute("aria-pressed") == "true"
+
+
+def test_legend_card_hover(page, legend_url):
+    open_legend(page, legend_url)
+    w = entry(page, "width")
+    w.hover()
+    assert card_open(page, "width")
+    box, vw = page.locator(".fk-card:popover-open").bounding_box(), page.viewport_size["width"]
+    assert box["x"] >= 8 and box["x"] + box["width"] <= vw - 8
+    page.locator("#width").hover()  # onto the card: stays open
+    page.wait_for_timeout(400)
+    assert card_open(page, "width")
+    page.mouse.move(5, 500)
+    wait_closed(page, "width")
+
+
+def test_legend_card_closes_after_slider_drag(page, legend_url):
+    """Issue #16's bug: a slider dragged with the mouse kept focus and held the card open."""
+    open_legend(page, legend_url)
+    entry(page, "width").hover()
+    s = page.locator("#width").bounding_box()
+    page.mouse.move(s["x"] + 4, s["y"] + s["height"] / 2)
+    page.mouse.down()
+    page.mouse.move(s["x"] + s["width"] - 4, s["y"] + s["height"] / 2, steps=5)
+    page.mouse.up()
+    assert page.evaluate("document.getElementById('app').appModel.get('width')") > 2
+    page.mouse.move(5, 500)
+    wait_closed(page, "width")
+
+
+def test_legend_card_busy(page, legend_url):
+    open_legend(page, legend_url)
+    entry(page, "drag").hover()
+    a = page.locator("#drag-area").bounding_box()
+    page.mouse.move(a["x"] + 10, a["y"] + 10)
+    page.mouse.down()
+    page.mouse.move(5, 500, steps=5)  # out of the card mid-drag: stays open
+    page.wait_for_timeout(500)
+    assert card_open(page, "drag")
+    page.mouse.up()  # the drag ends outside: closes
+    wait_closed(page, "drag")
+
+
+def test_legend_card_keyboard(page, legend_url, browser_name):
+    open_legend(page, legend_url)
+    entry(page, "width").focus()
+    assert card_open(page, "width")
+    if browser_name != "webkit":  # Safari's default Tab skips buttons and sliders (an OS setting)
+        page.keyboard.press("Tab")  # into the card's slider
+        page.wait_for_timeout(400)
+        assert card_open(page, "width")
+    page.keyboard.press("Escape")
+    wait_closed(page, "width")
+    assert page.evaluate("document.activeElement.textContent.includes('width')")
+
+
+def test_legend_one_card_at_a_time(page, legend_url):
+    open_legend(page, legend_url)
+    entry(page, "width").hover()
+    entry(page, "drag").hover()
+    assert card_open(page, "drag")
+    assert page.locator(".fk-legend-card", has_text="width").get_attribute("aria-expanded") == "false"
+
+
+def test_legend_touch(browser, legend_served):
+    ctx = browser.new_context(has_touch=True, viewport={"width": 390, "height": 844})
+    try:
+        page = open_legend(ctx.new_page(), legend_served)
+        entry(page, "width").tap()
+        assert card_open(page, "width")
+        entry(page, "width").tap()
+        wait_closed(page, "width")
+    finally:
+        ctx.close()
+
+
+def test_legend_phone_dark_dispose(browser, legend_served):
+    ctx = browser.new_context(viewport={"width": 375, "height": 700})
+    try:
+        page = open_legend(ctx.new_page(), legend_served)
+        assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1")
+        entry(page, "width").hover()
+        box = page.locator(".fk-card:popover-open").bounding_box()
+        assert box["x"] >= 0 and box["x"] + box["width"] <= 375 and box["y"] >= 0
+        page.evaluate("document.documentElement.dataset.theme = 'dark'")
+        assert page.locator(".fk-card:popover-open").evaluate("(c) => getComputedStyle(c).backgroundColor") == "rgb(21, 24, 29)"
+        page.evaluate("window.disposeApp()")
+        assert page.locator(".fk-card, .fk-legend").count() == 0
+    finally:
+        ctx.close()

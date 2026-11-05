@@ -14,6 +14,13 @@ A release with a breaking change that has no migration note is not tagged.
 
 ## Unreleased
 
+### Added
+
+- `figpress-apps/legend.js` (#16): a figure's legend as its controls. Toggle entries show or hide
+  a curve through a boolean model key; card entries open a hover card of controls, which closes
+  when the mouse leaves even after a slider drag. `hoverCard` gives any trigger the same card.
+  Exported from `index.js` as `mountLegend` and `hoverCard`.
+
 ### Documentation
 
 - The globe draws a view's square on the camera-facing end of its line; the skill and `facing()`'s

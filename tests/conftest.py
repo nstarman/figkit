@@ -37,3 +37,24 @@ def served(globe_site):
 @pytest.fixture(scope="session")
 def browser_context_args(browser_context_args):
     return {**browser_context_args, "viewport": {"width": 1280, "height": 1000}}
+
+
+LEGEND = ROOT / "tests" / "apps" / "legend"
+
+
+@pytest.fixture(scope="session")
+def legend_site(tmp_path_factory):
+    import figpress_apps
+
+    out = tmp_path_factory.mktemp("legend")
+    return figpress_apps.build(LEGEND, out=out / "legend", single_file=out / "legend.html")
+
+
+@pytest.fixture(scope="session")
+def legend_served(legend_site):
+    from figpress_apps.serve import make_server
+
+    server = make_server(legend_site.out.parent, port=0)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{server.server_address[1]}/legend/"
+    server.shutdown()

@@ -64,7 +64,8 @@ The app is an anywidget module (`export default { async render({ model, el, sign
 loads data with `loadData` (from the model in notebooks, by name on the web — copy the template's
 first lines), initialises model state, builds the layout, mounts components
 ([references/components.md](references/components.md)) with options, and disposes them on
-`signal`. State rules:
+`signal`. Put show/hide switches and per-curve controls in the figure's legend with
+`figpress-apps/legend.js` (toggle entries and hover cards) rather than checkboxes beside it. State rules:
 
 - Shared state lives in the model (`camera`, `views`, …); values are **replaced, never mutated**.
 - Derived per-interaction data goes through callbacks (`compute`), never into the model.
