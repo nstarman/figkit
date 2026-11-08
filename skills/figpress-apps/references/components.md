@@ -13,14 +13,15 @@ and removes its listeners on dispose. Mount several components on one model to l
 | `colors` | `{id: css colour}` |
 | `markerAxes` | `(id, view) → [ex, ey]` tangent axes of id's square (globe frame); default: screen axes |
 | `markerSizeDeg` | half-width of a square in degrees (default 5.5) |
-| `mollweide` | `true`: a small Mollweide map of the whole sphere in the top-right corner of the globe's square, clear of the disc (default `false`). Longitude `atan2(y, x)` grows to the right, as matplotlib's `"mollweide"` axes; the half the globe hides is veiled; each view is a filled square, its antipode hollow; `+` is the globe's centre. Clicking or dragging on it turns the globe to face that direction (writes `camera`) |
+| `mollweide` | `true`: a small Mollweide map of the whole sphere in the top-right corner of the globe's square, clear of the disc (default `false`). Longitude `atan2(y, x)` grows to the right, as matplotlib's `"mollweide"` axes; the half the globe hides is veiled; each view is a filled square, its antipode hollow (no antipode when `directed`); `+` is the globe's centre. Clicking or dragging on it turns the globe to face that direction (writes `camera`) |
+| `directed` | `true`: each view is a direction with a sign, not an axis (default `false`). Its square sits at `views[id]` itself, faint with a dashed outline when that end is on the back of the globe, and is hit where it is drawn; a drag keeps it on the side (front or back) it started on. Use it when v and −v are different views, e.g. an observer on one end of a line of sight |
 
 Model: reads/writes `camera` (rotate by dragging the background) and `views`
 (`{id: [x, y, z]}`, drag a square). Calls `save_changes()` on pointer-up.
-A view and its antipode are the same view, and the square is drawn on whichever end faces the
-camera; a stored `views[id]` may point the other way. Read the direction a square shows with
-`facing(camera, views[id])` (from `geom.js`), never `views[id]` alone, or it flips to the antipode
-when the globe turns.
+By default a view and its antipode are the same view, and the square is drawn on whichever end
+faces the camera; a stored `views[id]` may point the other way. Read the direction a square shows
+with `facing(camera, views[id])` (from `geom.js`), never `views[id]` alone, or it flips to the
+antipode when the globe turns. With `directed: true` the square is always at `views[id]`.
 Pure kernels: `shade(camera, texture, size, out, base = [255, 255, 255])` — `base` is an `[r, g, b]` array (0–255), e.g. `rgb(cssVar(el, "--fk-bg", "#fff"))`; `shadeMollweide(camera, texture, w, h, out, base)`, the inset's map.
 
 ## figpress-apps/skypanel.js — `mount(el, model, opts)` (the general 2-D panel)

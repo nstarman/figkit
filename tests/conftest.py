@@ -58,3 +58,11 @@ def legend_served(legend_site):
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{server.server_address[1]}/legend/"
     server.shutdown()
+
+
+@pytest.fixture(scope="session")
+def directed_globe(tmp_path_factory):
+    import figpress_apps
+
+    out = tmp_path_factory.mktemp("directed")
+    return figpress_apps.build(ROOT / "tests" / "apps" / "globe-directed", single_file=out / "globe.html").single_file.as_uri()
