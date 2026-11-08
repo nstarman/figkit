@@ -325,10 +325,15 @@ def test_legend_phone_dark_dispose(browser, legend_served):
 
 def open_directed(page, url):
     page.goto(url)
-    page.wait_for_function("""() => { // the first frame is drawn: the disc's centre is opaque
+    drawn = """() => { // a frame is drawn: the disc's centre is opaque
       const cv = document.querySelector("canvas[data-r]");
       return cv?.appModel && cv.getContext("2d").getImageData(cv.width / 2, cv.height / 2, 1, 1).data[3] === 255;
-    }""")
+    }"""
+    page.wait_for_function(drawn)
+    # the ResizeObserver's first resize can clear the canvas after that frame; its redraw comes a
+    # frame later, so wait two frames and check again
+    page.evaluate("() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))")
+    page.wait_for_function(drawn)
 
 
 def directed_state(page):
