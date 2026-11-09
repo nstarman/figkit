@@ -12,6 +12,17 @@ Every release has a section. Every breaking change has a migration note with thr
 
 A release with a breaking change that has no migration note is not tagged.
 
+## Unreleased
+
+### Added
+
+- The globe's `mount` takes `directed` (default `false`, which changes nothing) for views that are
+  directions with a sign, not axes: each square sits at `views[id]` itself, faint with a dashed
+  outline when that end is on the back of the globe, and is hit where it is drawn; a drag keeps the
+  view on the side it started on (on the back, the point under the cursor mirrored through the
+  screen plane). The Mollweide inset then draws no hollow antipode. For an observer on one end of a
+  line of sight, where v and −v are different views.
+
 ## 2026.11.05 — 2026-11-05
 
 ### Added

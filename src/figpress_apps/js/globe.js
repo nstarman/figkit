@@ -2,11 +2,14 @@
 // and one draggable square marker per viewing direction. State lives in the model:
 //   camera  number[9]  rows page-right, page-up, toward-viewer (data frame); written on rotate
 //   views   {id: [x, y, z]}  unit viewing directions; written when a marker is dragged
-// A view and its antipode are equivalent: a marker is drawn on the camera-facing end, and a drag
-// keeps the view on its own end of the line.
+// By default a view is an axis, equivalent to its antipode: a marker is drawn on the camera-facing
+// end, and a drag keeps the view on its own end of the line. With `directed: true` a view is a
+// direction with a sign: its marker sits at the view itself, faint and dashed when that end is on
+// the back, and a drag keeps it on the side (front or back) it started on.
 // With `mollweide: true`, a small Mollweide map of the whole sphere sits in the top-right corner of
 // the globe's square, clear of the disc: the half the globe hides is veiled, each view is a filled
-// square (its antipode hollow), + is the globe's centre; clicking or dragging on it turns the globe.
+// square (its antipode hollow, unless `directed`), + is the globe's centre; clicking or dragging on
+// it turns the globe.
 
 import { createStage, dragHelper, cssVar, rgb, context2d } from "figpress-apps/stage.js";
 import { mat3, trackball, project, unproject, facing, unit, dot, mollweide, unmollweide, lookAt } from "figpress-apps/geom.js";
@@ -127,9 +130,12 @@ function inside(poly, x, y) {
 /**
  * opts: texture, lines {id: {data, shape:[n,3]}} (globe radius 1), points {id: …} (optional),
  * colors {id: css colour}, markerAxes(id, view) → [ex, ey] tangent axes of the square,
- * markerSizeDeg (half-width of a square, degrees on the sphere).
+ * markerSizeDeg (half-width of a square, degrees on the sphere), mollweide (true: the inset map),
+ * directed (default false: a view is an axis and its square sits on the camera-facing end of the
+ * line; true: a view is a direction with a sign, its square sits at the view, drawn faint with a
+ * dashed outline when on the back, and a drag keeps it on the side it started on).
  */
-export function mount(el, model, { texture, lines = {}, points = {}, colors = {}, markerAxes, markerSizeDeg = 5.5, mollweide: inset = false }) {
+export function mount(el, model, { texture, lines = {}, points = {}, colors = {}, markerAxes, markerSizeDeg = 5.5, mollweide: inset = false, directed = false }) {
   const box = document.createElement("div");
   box.className = "fk-plot fk-globe";
   box.style.cursor = "grab";
@@ -214,15 +220,18 @@ export function mount(el, model, { texture, lines = {}, points = {}, colors = {}
     }
     ctx.globalAlpha = 1;
 
-    // viewing-direction squares, on the camera-facing end of each line
-    squares = Object.entries(views).map(([id, view]) => {
-      const n = facing(camera, view);
+    // viewing-direction squares: on the camera-facing end of each line, or at the view if directed
+    // (back ones first, so front ones are drawn over them and hit first)
+    const toward = mat3.row(camera, 2), entries = Object.entries(views);
+    if (directed) entries.sort((a, b) => dot(toward, a[1]) - dot(toward, b[1]));
+    squares = entries.map(([id, view]) => {
+      const n = directed ? view : facing(camera, view), back = dot(toward, n) < 0;
       const [ex, ey] = markerAxes ? markerAxes(id, view) : [mat3.row(camera, 0), mat3.row(camera, 1)];
       const poly = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) =>
         P3(unit([0, 1, 2].map((k) => n[k] + H * (i * ex[k] + j * ey[k])))));
       ctx.beginPath(); poly.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
-      ctx.fillStyle = colors[id] ?? "#555"; ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1;
-      ctx.strokeStyle = "#000"; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.fillStyle = colors[id] ?? "#555"; ctx.globalAlpha = back ? 0.4 : 0.9; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = "#000"; ctx.lineWidth = 1.2; ctx.setLineDash(back ? [3, 2] : []); ctx.stroke(); ctx.setLineDash([]);
       return { id, poly };
     });
     if (map) drawMap(ctx, camera, views, fg, muted);
@@ -247,8 +256,10 @@ export function mount(el, model, { texture, lines = {}, points = {}, colors = {}
     const m = Math.max(3, map.w / 40);
     for (const [id, view] of Object.entries(views)) {
       ctx.strokeStyle = ctx.fillStyle = colors[id] ?? "#555"; ctx.lineWidth = 1.5;
-      const [ax, ay] = toMap(view.map((c) => -c));
-      ctx.strokeRect(ax - m, ay - m, 2 * m, 2 * m);
+      if (!directed) {
+        const [ax, ay] = toMap(view.map((c) => -c));
+        ctx.strokeRect(ax - m, ay - m, 2 * m, 2 * m);
+      }
       const [x, y] = toMap(view);
       ctx.fillRect(x - m, y - m, 2 * m, 2 * m);
     }
@@ -276,7 +287,10 @@ export function mount(el, model, { texture, lines = {}, points = {}, colors = {}
       } else if (target === null) {
         model.set("camera", trackball(model.get("camera"), dx, dy, geo.r));
       } else {
-        const v = unproject(model.get("camera"), x, y, geo).map((c) => sign * c);
+        const camera = model.get("camera"), p = unproject(camera, x, y, geo);
+        // directed, on the back: the front point mirrored through the screen plane, p − 2 (ẑ·p) ẑ
+        const z = mat3.row(camera, 2), d = 2 * dot(z, p);
+        const v = !directed ? p.map((c) => sign * c) : sign < 0 ? p.map((c, k) => c - d * z[k]) : p;
         model.set("views", { ...model.get("views"), [target]: v });
       }
     },

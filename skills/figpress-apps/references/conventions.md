@@ -33,8 +33,10 @@
   toward-the-viewer, in the data frame.
 - `rotationToZ(v)` is the paper convention: the rotation about v × z taking unit v to +z; its rows
   are sky-x, sky-y, v. Antiparallel: diag(1, −1, −1).
-- A viewing direction and its antipode give the same projected shape mirrored; the globe draws a
-  marker on the camera-facing end and keeps a dragged view on its own end.
+- A viewing direction and its antipode give the same projected shape mirrored; by default the globe
+  draws a marker on the camera-facing end and keeps a dragged view on its own end. When v and −v
+  are different views, mount the globe with `directed: true`: the marker sits at the view, faint
+  when on the back, and a drag keeps it on its side.
 - Globe coordinates are in units of the globe radius (radius 1).
 
 ## Versions

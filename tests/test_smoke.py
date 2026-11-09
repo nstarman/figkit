@@ -318,3 +318,113 @@ def test_legend_phone_dark_dispose(browser, legend_served):
         assert page.locator(".fk-card, .fk-legend").count() == 0
     finally:
         ctx.close()
+
+
+# ── globe.js `directed: true`: a view is a direction with a sign (tests/apps/globe-directed) ──
+# Camera = identity, so a view [x, y, z] sits at screen (cx + r x, cy − r y), on the back when z < 0.
+
+def open_directed(page, url):
+    page.goto(url)
+    drawn = """() => { // a frame is drawn: the disc's centre is opaque
+      const cv = document.querySelector("canvas[data-r]");
+      return cv?.appModel && cv.getContext("2d").getImageData(cv.width / 2, cv.height / 2, 1, 1).data[3] === 255;
+    }"""
+    page.wait_for_function(drawn)
+    # the ResizeObserver's first resize can clear the canvas after that frame; its redraw comes a
+    # frame later, so wait two frames and check again
+    page.evaluate("() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))")
+    page.wait_for_function(drawn)
+
+
+def directed_state(page):
+    return page.evaluate("""() => {
+      const cv = document.querySelector("canvas[data-r]"), b = cv.getBoundingClientRect(), d = cv.dataset;
+      return { left: b.left, top: b.top, cx: +d.cx, cy: +d.cy, r: +d.r, map: d.mollweide.split(",").map(Number),
+               camera: cv.appModel.get("camera"), views: cv.appModel.get("views") };
+    }""")
+
+
+def at(s, v):  # page position of direction v
+    return s["left"] + s["cx"] + s["r"] * v[0], s["top"] + s["cy"] - s["r"] * v[1]
+
+
+def pixels(page, x, y, half=0):  # RGB of the canvas pixels within `half` CSS px of page point (x, y)
+    return page.evaluate("""([x, y, half]) => {
+      const cv = document.querySelector("canvas[data-r]"), b = cv.getBoundingClientRect(), k = devicePixelRatio;
+      const n = Math.round(2 * half * k) + 1;
+      const px = cv.getContext("2d").getImageData(Math.round((x - b.left - half) * k), Math.round((y - b.top - half) * k), n, n).data;
+      const out = [];
+      for (let i = 0; i < px.length; i += 4) out.push([px[i], px[i + 1], px[i + 2], px[i + 3]]);
+      return out;
+    }""", [x, y, half])
+
+
+def magenta(p):
+    return p[0] > 200 and p[2] > 200 and p[1] < 200
+
+
+def blue(p):
+    return p[2] > 150 and p[0] < 100 and p[1] < 100
+
+
+def test_directed_squares_at_view(page, directed_globe):
+    """Each square sits at its view, a back one faint; nothing is drawn at the back view's antipode."""
+    open_directed(page, directed_globe)
+    s = directed_state(page)
+    front, back = s["views"]["front"], s["views"]["back"]
+    assert blue(pixels(page, *at(s, front))[0])
+    (p,) = pixels(page, *at(s, back))
+    assert magenta(p) and p[1] > 100, p  # faint: the page shows through
+    assert not magenta(pixels(page, *at(s, [-c for c in back]))[0])
+
+
+def drag(page, x, y, path, steps=6):
+    page.mouse.move(x, y)
+    page.mouse.down()
+    for px, py in path:
+        page.mouse.move(px, py, steps=steps)
+    page.mouse.up()
+
+
+def test_directed_drag_both_hemispheres(page, directed_globe):
+    """A square on either side is hit where it is drawn and follows the cursor on its own side."""
+    open_directed(page, directed_globe)
+    for sid, side in (("front", 1), ("back", -1)):
+        s = directed_state(page)
+        x, y = at(s, s["views"][sid])
+        drag(page, x, y, [(x + 15, y + 10)])
+        t = directed_state(page)
+        assert t["camera"] == s["camera"], f"{sid}: the press missed the square and turned the globe"
+        u, v = (x + 15 - s["left"] - s["cx"]) / s["r"], -(y + 10 - s["top"] - s["cy"]) / s["r"]
+        want = [u, v, side * (1 - u * u - v * v) ** 0.5]  # on the back: the front point mirrored
+        assert all(abs(a - b) < 0.02 for a, b in zip(t["views"][sid], want)), (sid, t["views"][sid], want)
+
+
+def test_directed_back_drag_stays_back(page, directed_globe):
+    """A drag that starts on the back square stays on the back, across the disc's centre."""
+    open_directed(page, directed_globe)
+    s = directed_state(page)
+    x, y = at(s, s["views"]["back"])
+    cx, cy, r = s["left"] + s["cx"], s["top"] + s["cy"], s["r"]
+    drag(page, x, y, [(cx, cy), (cx + 0.5 * r, cy - 0.2 * r)])
+    t = directed_state(page)
+    assert t["camera"] == s["camera"]
+    view = t["views"]["back"]
+    assert view[2] < -0.8, view
+    assert abs(view[0] - 0.5) < 0.02 and abs(view[1] - 0.2) < 0.02, view
+
+
+def test_directed_mollweide(page, directed_globe):
+    """The inset shows each view as one filled square at the view, with no hollow antipode."""
+    open_directed(page, directed_globe)
+    s = directed_state(page)
+    mx, my, mw, mh = s["map"]
+
+    def on_map(d):
+        x, y = page.evaluate("(d) => geom.mollweide(d)", d)
+        return s["left"] + mx + (x + 2) / 4 * mw, s["top"] + my + (1 - y) / 2 * mh
+
+    front = s["views"]["front"]
+    assert blue(pixels(page, *on_map(front))[0])
+    m = max(3, mw / 40)
+    assert not any(blue(p) for p in pixels(page, *on_map([-c for c in front]), half=m + 2))
